@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Putovani okolo Svetic</title>
+  <title>Zápis do Google Tabulky</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -64,38 +64,55 @@
   <!-- Logo -->
   <img src="logo.png" alt="Logo" class="logo">
 
-  <h1 id="text">Nacitam text...</h1>
+  <h1 id="text">Načítám text...</h1>
 
-  <label for="nickname">Tva prezdivka:</label>
+  <label for="nickname">Tvá přezdívka:</label>
   <input type="text" id="nickname" placeholder="Zadej přezdívku" />
 
-  <button onclick="odeslat()">Potvrdit navstevu mista</button>
+  <button id="submitButton">Potvrdit návštěvu místa</button>
 
   <script>
-    // Získání textu z URL parametru ?text=...
-    const params = new URLSearchParams(window.location.search);
-    const text = params.get("text") || "Zadny text v URL";
-    document.getElementById("text").textContent = text;
+    window.addEventListener('DOMContentLoaded', function () {
+      const params = new URLSearchParams(window.location.search);
+      const text = params.get("text") || "Žádný text v URL";
+      document.getElementById("text").textContent = text;
 
-    // Načtení nickname z localStorage
-    const nickInput = document.getElementById("nickname");
-    const ulozenyNick = localStorage.getItem("nickname");
-    if (ulozenyNick) {
-      nickInput.value = ulozenyNick;
-    }
-
-    function odeslat() {
-      const nick = nickInput.value.trim();
-      if (!nick) {
-        alert("Zadej prosim prezdivku.");
-        return;
+      const nickInput = document.getElementById("nickname");
+      const ulozenyNick = localStorage.getItem("nickname");
+      if (ulozenyNick) {
+        nickInput.value = ulozenyNick;
       }
 
-      // Uložení nicku do localStorage
-      localStorage.setItem("nickname", nick);
+      const btn = document.getElementById("submitButton");
+      btn.addEventListener("click", function () {
+        const nick = nickInput.value.trim();
+        if (!nick) {
+          alert("Zadej prosím přezdívku.");
+          return;
+        }
 
-      // Příprava dat k odeslání
-      const data = {
-        datum: new Date().toISOString(),
-        text: text,
-        nick: nick
+        localStorage.setItem("nickname", nick);
+
+        const data = {
+          datum: new Date().toISOString(),
+          text: text,
+          nick: nick
+        };
+
+        fetch("https://script.google.com/macros/s/AKfycbxuVgHfxhgc0KdhPY2kRF_QAYed_mVlEU1IM0Aq6a-cTS_WHvxh5Jlf5BeYkf09DmHw/exec", {
+          method: "POST",
+          mode: "no-cors",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(data)
+        });
+
+        // Nahrazení celé stránky poděkováním
+        document.body.innerHTML = "<h1 style='text-align:center; margin-top: 40vh;'>Děkuji</h1>";
+      });
+    });
+  </script>
+
+</body>
+</html>
