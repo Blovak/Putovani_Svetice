@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zápis do Google Tabulky</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 0;
+      background-color: #f9f9f9;
+    }
+
+    h1 {
+      font-size: 1.2em;
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    label, input, button {
+      display: block;
+      width: 100%;
+      margin-bottom: 15px;
+      font-size: 1em;
+    }
+
+    input {
+      padding: 10px;
+      box-sizing: border-box;
+    }
+
+    button {
+      padding: 12px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    @media (min-width: 600px) {
+      body {
+        max-width: 400px;
+        margin: 40px auto;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1 id="text">Nacitam text...</h1>
+
+  <label for="nickname">Tva prezdivka:</label>
+  <input type="text" id="nickname" placeholder="Zadej pøezdívku" />
+
+  <button onclick="odeslat()">Potvrdit navstevu mista</button>
+
+  <script>
+    // Získání textu z URL parametru ?text=...
+    const params = new URLSearchParams(window.location.search);
+    const text = params.get("text") || "Zadny text v URL";
+    document.getElementById("text").textContent = text;
+
+    // Naètení nickname z localStorage
+    const nickInput = document.getElementById("nickname");
+    const ulozenyNick = localStorage.getItem("nickname");
+    if (ulozenyNick) {
+      nickInput.value = ulozenyNick;
+    }
+
+    function odeslat() {
+      const nick = nickInput.value.trim();
+      if (!nick) {
+        alert("Zadej prosim prezdivku.");
+        return;
+      }
+
+      // Uložení nicku do localStorage
+      localStorage.setItem("nickname", nick);
+
+      // Pøíprava dat k odeslání
+      const data = {
+        datum: new Date().toISOString(),
+        text: text,
+        nick: nick
+      };
+
+      // Odeslání dat na Google Script (nahradíš vlastní URL)
+      fetch("https://script.google.com/macros/s/AKfycbxuVgHfxhgc0KdhPY2kRF_QAYed_mVlEU1IM0Aq6a-cTS_WHvxh5Jlf5BeYkf09DmHw/exec", {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      });
+
+      alert("Odesláno. Dekujeme!");
+    }
+  </script>
+
+</body>
+</html>
+
