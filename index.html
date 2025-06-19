@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zápis do Google Tabulky</title>
+  <title>Putovani okolo Svetic</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -12,10 +12,18 @@
       background-color: #f9f9f9;
     }
 
+    img.logo {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin: 0 auto 20px auto;
+    }
+
     h1 {
       font-size: 1.2em;
       color: #333;
       margin-bottom: 20px;
+      text-align: center;
     }
 
     label, input, button {
@@ -53,10 +61,13 @@
 </head>
 <body>
 
+  <!-- Logo -->
+  <img src="logo.png" alt="Logo" class="logo">
+
   <h1 id="text">Nacitam text...</h1>
 
   <label for="nickname">Tva prezdivka:</label>
-  <input type="text" id="nickname" placeholder="Zadej pøezdívku" />
+  <input type="text" id="nickname" placeholder="Zadej přezdívku" />
 
   <button onclick="odeslat()">Potvrdit navstevu mista</button>
 
@@ -66,7 +77,7 @@
     const text = params.get("text") || "Zadny text v URL";
     document.getElementById("text").textContent = text;
 
-    // Naètení nickname z localStorage
+    // Načtení nickname z localStorage
     const nickInput = document.getElementById("nickname");
     const ulozenyNick = localStorage.getItem("nickname");
     if (ulozenyNick) {
@@ -74,37 +85,17 @@
     }
 
     function odeslat() {
-  const nick = nickInput.value.trim();
-  if (!nick) {
-    alert("Zadej prosim prezdivku.");
-    return;
-  }
+      const nick = nickInput.value.trim();
+      if (!nick) {
+        alert("Zadej prosim prezdivku.");
+        return;
+      }
 
-  // Uložení nicku do localStorage
-  localStorage.setItem("nickname", nick);
+      // Uložení nicku do localStorage
+      localStorage.setItem("nickname", nick);
 
-  // Příprava dat k odeslání
-  const data = {
-    datum: new Date().toISOString(),
-    text: text,
-    nick: nick
-  };
-
-  // Odeslání dat na Google Script
-  fetch("https://script.google.com/macros/s/AKfycbxuVgHfxhgc0KdhPY2kRF_QAYed_mVlEU1IM0Aq6a-cTS_WHvxh5Jlf5BeYkf09DmHw/exec", {
-    method: "POST",
-    mode: "no-cors",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(data)
-  });
-
-  // Změna celé stránky na "Děkuji"
-  document.body.innerHTML = "<h1 style='text-align:center; margin-top: 40vh;'>Dekuji</h1>";
-}
-  </script>
-
-</body>
-</html>
-
+      // Příprava dat k odeslání
+      const data = {
+        datum: new Date().toISOString(),
+        text: text,
+        nick: nick
