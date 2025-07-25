@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Zápis do Google Tabulky</title>
   <style>
     body {
@@ -61,8 +61,7 @@
 </head>
 <body>
 
-  <!-- Logo -->
-  <img src="logo.png" alt="Logo" class="logo">
+  <img src="logo.png" alt="Logo" class="logo" />
 
   <h1 id="text">Načítám text...</h1>
 
@@ -71,11 +70,41 @@
 
   <button id="submitButton">Potvrdit návštěvu místa</button>
 
+  <p id="mapaOdkaz" style="text-align:center; margin-top: 20px;">Načítám mapu...</p>
+
   <script>
-    window.addEventListener('DOMContentLoaded', function () {
+    let globalText = ""; // pro uložení textu před odesláním
+
+    window.addEventListener("DOMContentLoaded", function () {
       const params = new URLSearchParams(window.location.search);
-      const text = params.get("text") || "Žádný text v URL";
-      document.getElementById("text").textContent = text;
+      const code = params.get("code");
+
+      if (!code) {
+        document.getElementById("text").textContent = "Chybí parametr ?code v URL.";
+        document.getElementById("mapaOdkaz").textContent = "";
+        return;
+      }
+
+      // 🔗 ZDE vlož svou Apps Script URL
+      const apiUrl = "https://script.google.com/macros/s/TVŮJ_APPS_SCRIPT_URL/exec?code=" + encodeURIComponent(code);
+
+      fetch(apiUrl)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            document.getElementById("text").textContent = "Chyba: " + data.error;
+            document.getElementById("mapaOdkaz").textContent = "";
+            return;
+          }
+
+          globalText = data.text;
+          document.getElementById("text").textContent = data.text;
+          document.getElementById("mapaOdkaz").innerHTML = `<a href="${data.mapUrl}" target="_blank">Zobrazit mapu</a>`;
+        })
+        .catch(error => {
+          console.error(error);
+          document.getElementById("text").textContent = "Chyba při načítání dat.";
+        });
 
       const nickInput = document.getElementById("nickname");
       const ulozenyNick = localStorage.getItem("nickname");
@@ -83,8 +112,7 @@
         nickInput.value = ulozenyNick;
       }
 
-      const btn = document.getElementById("submitButton");
-      btn.addEventListener("click", function () {
+      document.getElementById("submitButton").addEventListener("click", function () {
         const nick = nickInput.value.trim();
         if (!nick) {
           alert("Zadej prosím přezdívku.");
@@ -93,9 +121,9 @@
 
         localStorage.setItem("nickname", nick);
 
-        const data = {
+        const odeslani = {
           datum: new Date().toISOString(),
-          text: text,
+          text: globalText,
           nick: nick
         };
 
@@ -105,12 +133,12 @@
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify(data)
+          body: JSON.stringify(odeslani)
         });
 
-        // Nahrazení celé stránky poděkováním a zobrazením odkazu na mapu
-        document.body.innerHTML = "<h1 style='text-align:center; margin-top: 40vh;'>Děkuji</h1>" +
-          "<p style='text-align:center;'><a href='https://mapy.com/s/domabetuze' target='_blank'>Odkaz na mapu</a></p>";
+        document.body.innerHTML =
+          "<h1 style='text-align:center; margin-top: 40vh;'>Děkuji</h1>" +
+          `<p style='text-align:center;'><a href='${data.mapUrl}' target='_blank'>Odkaz na mapu</a></p>`;
       });
     });
   </script>
