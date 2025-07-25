@@ -93,7 +93,8 @@
         return;
       }
 
-      const apiUrl = "https://script.google.com/macros/s/AKfycbxUJQE0MZQnYRsT1WDwrvrqF5jtjTKCokqnwriCGfrC_E4NHlVftrRO_FQ9Z_PaBElV/exec?action=code&code=" + encodeURIComponent(code);
+      const baseUrl = "https://script.google.com/macros/s/AKfycbxUJQE0MZQnYRsT1WDwrvrqF5jtjTKCokqnwriCGfrC_E4NHlVftrRO_FQ9Z_PaBElV/exec";
+      const apiUrl = `${baseUrl}?action=code&code=${encodeURIComponent(code)}`;
 
       fetch(apiUrl)
         .then(res => res.json())
@@ -135,7 +136,7 @@
           nick: nick
         };
 
-        fetch("https://script.google.com/macros/s/AKfycbxUJQE0MZQnYRsT1WDwrvrqF5jtjTKCokqnwriCGfrC_E4NHlVftrRO_FQ9Z_PaBElV/exec", {
+        fetch(baseUrl, {
           method: "POST",
           mode: "no-cors",
           headers: {
@@ -144,11 +145,13 @@
           body: JSON.stringify(odeslani)
         });
 
-        // ✅ Vyčisti stránku a zobraz jen poděkování a odkaz
-        document.body.innerHTML =
-          `<h1>Děkuji</h1>` +
-          `<a href="${globalMapUrl}" target="_blank">Odkaz na mapu</a>` + 
-          `<a href="https://script.google.com/macros/s/AKfycbxUJQE0MZQnYRsT1WDwrvrqF5jtjTKCokqnwriCGfrC_E4NHlVftrRO_FQ9Z_PaBElV/exec?action=stats&nick=${nick}" target="_blank">Statistiky</a>;
+        // ✅ Vyčisti stránku a zobraz jen poděkování a odkazy
+        const statsUrl = `${baseUrl}?action=stats&nick=${encodeURIComponent(nick)}`;
+        document.body.innerHTML = `
+          <h1>Děkuji</h1>
+          <p><a href="${globalMapUrl}" target="_blank">Odkaz na mapu</a></p>
+          <p><a href="${statsUrl}" target="_blank">Statistiky</a></p>
+        `;
       });
     });
   </script>
