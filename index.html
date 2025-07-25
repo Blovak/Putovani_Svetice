@@ -10,6 +10,7 @@
       margin: 20px;
       padding: 0;
       background-color: #f9f9f9;
+      text-align: center;
     }
 
     img.logo {
@@ -20,10 +21,21 @@
     }
 
     h1 {
-      font-size: 1.2em;
+      font-size: 1.5em;
       color: #333;
-      margin-bottom: 20px;
-      text-align: center;
+      margin-top: 20vh;
+    }
+
+    a {
+      display: inline-block;
+      margin-top: 20px;
+      font-size: 1.1em;
+      color: #0077cc;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
     }
 
     label, input, button {
@@ -133,11 +145,10 @@
           body: JSON.stringify(odeslani)
         });
 
-        // Po odeslání skryj původní text a zobraz poděkování a mapu
-        document.getElementById("text").textContent = "Děkuji";
-        const mapaOdkaz = document.getElementById("mapaOdkaz");
-        mapaOdkaz.style.display = "block";
-        mapaOdkaz.innerHTML = `<a href="${globalMapUrl}" target="_blank">Odkaz na mapu</a>`;
+        // ✅ Vyčisti stránku a zobraz jen poděkování a odkaz
+        document.body.innerHTML =
+          `<h1>Děkuji</h1>` +
+          `<a href="${globalMapUrl}" target="_blank">Odkaz na mapu</a>`;
       });
     });
   </script>
