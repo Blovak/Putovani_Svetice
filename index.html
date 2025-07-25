@@ -93,7 +93,7 @@
         return;
       }
 
-      const apiUrl = "https://script.google.com/macros/s/AKfycbxUJQE0MZQnYRsT1WDwrvrqF5jtjTKCokqnwriCGfrC_E4NHlVftrRO_FQ9Z_PaBElV/exec?code=" + encodeURIComponent(code);
+      const apiUrl = "https://script.google.com/macros/s/AKfycbxUJQE0MZQnYRsT1WDwrvrqF5jtjTKCokqnwriCGfrC_E4NHlVftrRO_FQ9Z_PaBElV/exec?action=code&code=" + encodeURIComponent(code);
 
       fetch(apiUrl)
         .then(res => res.json())
