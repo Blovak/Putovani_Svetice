@@ -70,11 +70,12 @@
 
   <button id="submitButton">Potvrdit návštěvu místa</button>
 
-  <p id="mapaOdkaz" style="text-align:center; margin-top: 20px;">Načítám mapu...</p>
+  <!-- Odkaz na mapu bude viditelný až po potvrzení -->
+  <p id="mapaOdkaz" style="text-align:center; margin-top: 20px; display: none;"></p>
 
   <script>
-    let globalText = "";     // text ze sloupce E
-    let globalMapUrl = "";   // odkaz ze sloupce F
+    let globalText = "";
+    let globalMapUrl = "";
 
     window.addEventListener("DOMContentLoaded", function () {
       const params = new URLSearchParams(window.location.search);
@@ -82,11 +83,9 @@
 
       if (!code) {
         document.getElementById("text").textContent = "Chybí parametr ?code v URL.";
-        document.getElementById("mapaOdkaz").textContent = "";
         return;
       }
 
-      
       const apiUrl = "https://script.google.com/macros/s/AKfycbxK8PRAeVtLf4xrhfDjNjkf61p-nu2N21xRqGoo5IkynrYJcK4mSnAYOwyccVF051tK/exec?code=" + encodeURIComponent(code);
 
       fetch(apiUrl)
@@ -94,7 +93,6 @@
         .then(data => {
           if (data.error) {
             document.getElementById("text").textContent = "Chyba: " + data.error;
-            document.getElementById("mapaOdkaz").textContent = "";
             return;
           }
 
@@ -102,7 +100,6 @@
           globalMapUrl = data.mapUrl;
 
           document.getElementById("text").textContent = globalText;
-          document.getElementById("mapaOdkaz").innerHTML = `<a href="${globalMapUrl}" target="_blank">Zobrazit mapu</a>`;
         })
         .catch(error => {
           console.error(error);
@@ -130,7 +127,6 @@
           nick: nick
         };
 
-        
         fetch("https://script.google.com/macros/s/AKfycbyjKBNIUeR9eSLy0_J66jmy3mE9Op47QOw0f3IPXGRxjXOgSgAx6VFxBWr_DGYKw22d/exec", {
           method: "POST",
           mode: "no-cors",
@@ -140,9 +136,11 @@
           body: JSON.stringify(odeslani)
         });
 
-        document.body.innerHTML =
-          "<h1 style='text-align:center; margin-top: 40vh;'>Děkuji</h1>" +
-          `<p style='text-align:center;'><a href='${globalMapUrl}' target='_blank'>Odkaz na mapu</a></p>`;
+        // Po odeslání skryj původní text a zobraz poděkování a mapu
+        document.getElementById("text").textContent = "Děkuji";
+        const mapaOdkaz = document.getElementById("mapaOdkaz");
+        mapaOdkaz.style.display = "block";
+        mapaOdkaz.innerHTML = `<a href="${globalMapUrl}" target="_blank">Odkaz na mapu</a>`;
       });
     });
   </script>
