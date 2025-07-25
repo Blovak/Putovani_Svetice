@@ -73,7 +73,8 @@
   <p id="mapaOdkaz" style="text-align:center; margin-top: 20px;">Načítám mapu...</p>
 
   <script>
-    let globalText = ""; // pro uložení textu před odesláním
+    let globalText = "";     // text ze sloupce E
+    let globalMapUrl = "";   // odkaz ze sloupce F
 
     window.addEventListener("DOMContentLoaded", function () {
       const params = new URLSearchParams(window.location.search);
@@ -85,7 +86,7 @@
         return;
       }
 
-      // 🔗 ZDE vlož svou Apps Script URL
+      // 🔗 Vlož svou Apps Script URL pro čtení
       const apiUrl = "https://script.google.com/macros/s/AKfycbxK8PRAeVtLf4xrhfDjNjkf61p-nu2N21xRqGoo5IkynrYJcK4mSnAYOwyccVF051tK/exec?code=" + encodeURIComponent(code);
 
       fetch(apiUrl)
@@ -98,8 +99,10 @@
           }
 
           globalText = data.text;
-          document.getElementById("text").textContent = data.text;
-          document.getElementById("mapaOdkaz").innerHTML = `<a href="${data.mapUrl}" target="_blank">Zobrazit mapu</a>`;
+          globalMapUrl = data.mapUrl;
+
+          document.getElementById("text").textContent = globalText;
+          document.getElementById("mapaOdkaz").innerHTML = `<a href="${globalMapUrl}" target="_blank">Zobrazit mapu</a>`;
         })
         .catch(error => {
           console.error(error);
@@ -127,6 +130,7 @@
           nick: nick
         };
 
+        // 🔗 Vlož svou Apps Script URL pro zápis
         fetch("https://script.google.com/macros/s/AKfycbyjKBNIUeR9eSLy0_J66jmy3mE9Op47QOw0f3IPXGRxjXOgSgAx6VFxBWr_DGYKw22d/exec", {
           method: "POST",
           mode: "no-cors",
@@ -138,7 +142,7 @@
 
         document.body.innerHTML =
           "<h1 style='text-align:center; margin-top: 40vh;'>Děkuji</h1>" +
-          `<p style='text-align:center;'><a href='${data.mapUrl}' target='_blank'>Odkaz na mapu</a></p>`;
+          `<p style='text-align:center;'><a href='${globalMapUrl}' target='_blank'>Odkaz na mapu</a></p>`;
       });
     });
   </script>
