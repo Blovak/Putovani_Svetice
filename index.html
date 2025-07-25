@@ -1,75 +1,11 @@
-<!DOCTYPE html>
-<html lang="cs">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zápis do Google Tabulky</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      padding: 0;
-      background-color: #f9f9f9;
-    }
-
-    img.logo {
-      display: block;
-      max-width: 100%;
-      height: auto;
-      margin: 0 auto 20px auto;
-    }
-
-    h1 {
-      font-size: 1.2em;
-      color: #333;
-      margin-bottom: 20px;
-      text-align: center;
-    }
-
-    label, input, button {
-      display: block;
-      width: 100%;
-      margin-bottom: 15px;
-      font-size: 1em;
-    }
-
-    input {
-      padding: 10px;
-      box-sizing: border-box;
-    }
-
-    button {
-      padding: 12px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #45a049;
-    }
-
-    @media (min-width: 600px) {
-      body {
-        max-width: 400px;
-        margin: 40px auto;
-      }
-    }
-  </style>
-</head>
-<body>
-
-  <!-- Logo -->
-  <img src="logo.png" alt="Logo" class="logo">
-
-  <h1 id="text">Načítám text...</h1>
-
-  <label for="nickname">Tvá přezdívka:</label>
-  <input type="text" id="nickname" placeholder="Zadej přezdívku" />
+<!-- ...zbytek HTML beze změn -->
 
   <button id="submitButton">Potvrdit návštěvu místa</button>
+
+  <!-- ODKAZ NA MAPU -->
+  <p style="text-align:center; margin-top: 20px;">
+    <a href="https://mapy.com/s/domabetuze" target="_blank">Zobrazit mapu</a>
+  </p>
 
   <script>
     window.addEventListener('DOMContentLoaded', function () {
@@ -108,7 +44,6 @@
           body: JSON.stringify(data)
         });
 
-        // Nahrazení celé stránky poděkováním
         document.body.innerHTML = "<h1 style='text-align:center; margin-top: 40vh;'>Děkuji</h1>" +
           "<p style='text-align:center;'><a href='https://mapy.com/s/domabetuze'>Odkaz na mapu</a></p>";
       });
