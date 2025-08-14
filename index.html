@@ -78,6 +78,8 @@
 
       const nickInput = document.getElementById("nickname");
       const ulozenyNick = localStorage.getItem("nickname");
+      const nickCode = localStorage.getItem("nickCode");
+      
       if (ulozenyNick) nickInput.value = ulozenyNick;
 
       document.getElementById("submitButton").addEventListener("click", async function () {
@@ -88,17 +90,20 @@
         }
 
         // Vytvoření kódu (neukazuje se uživateli)
-        const nickCode = await deriveNickCode(nick, code);
+        if (!nickCode) {
+            const nickCode = await deriveNickCode(nick, code);
+        } 
 
         // Uložení nicku pro příště
         localStorage.setItem("nickname", nick);
+        localStorage.setItem("nickCode", nickCode);
 
         // Tělo požadavku – API dostane nick i jeho 8místný kód
         const odeslani = {
           datum: new Date().toISOString(),
           code: code,          // kód místa z URL (beze změny)
           text: globalText,
-          nick: nick,          // zobrazuje se v UI
+          nick: nick+nickCode,          // zobrazuje se v UI
           nickCode: nickCode   // skrytý 8místný kód pro API
         };
 
@@ -110,7 +115,7 @@
         });
 
         // UI: pouze poděkování a odkazy (kód se NIKDE nezobrazuje)
-        const statsUrl = `${baseUrl}?action=stats&nick=${encodeURIComponent(nick)}`;
+        const statsUrl = `${baseUrl}?action=stats&nick=${encodeURIComponent(nick+nickCode)}`;
         document.body.innerHTML = `
           <h1>Děkuji</h1>
           <p><a href="${globalMapUrl}" target="_blank">Odkaz na mapu</a></p>
@@ -122,3 +127,4 @@
 
 </body>
 </html>
+
