@@ -12,77 +12,42 @@
     background-color: #f9f9f9;
     text-align: center;
   }
-
-  img.logo {
-    display: block;
-    max-width: 100%;
-    height: auto;
-    margin: 0 auto 10px auto; /* pouze malá mezera dolů */
-  }
-
-  h1 {
-    font-size: 1.5em;
-    color: #333;
-    margin: 10px 0; /* odstraněn margin-top: 20vh */
-  }
-
-  a {
-    display: inline-block;
-    margin-top: 20px;
-    font-size: 1.1em;
-    color: #0077cc;
-    text-decoration: none;
-  }
-
-  a:hover {
-    text-decoration: underline;
-  }
-
-  label, input, button {
-    display: block;
-    width: 100%;
-    margin-bottom: 15px;
-    font-size: 1em;
-  }
-
-  input {
-    padding: 10px;
-    box-sizing: border-box;
-  }
-
-  button {
-    padding: 12px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-
-  button:hover {
-    background-color: #45a049;
-  }
-
-  @media (min-width: 600px) {
-    body {
-      max-width: 400px;
-      margin: 40px auto;
-    }
-  }
-</style>
+  img.logo { display: block; max-width: 100%; height: auto; margin: 0 auto 10px auto; }
+  h1 { font-size: 1.5em; color: #333; margin: 10px 0; }
+  a { display: inline-block; margin-top: 20px; font-size: 1.1em; color: #0077cc; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  label, input, button { display: block; width: 100%; margin-bottom: 15px; font-size: 1em; }
+  input { padding: 10px; box-sizing: border-box; }
+  button { padding: 12px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
+  button:hover { background-color: #45a049; }
+  @media (min-width: 600px) { body { max-width: 400px; margin: 40px auto; } }
+  </style>
 </head>
 <body>
 
   <img src="logo.png" alt="Logo" class="logo" />
   <h1 id="text">Načítám text...</h1>
+
   <label for="nickname">Tvá přezdívka:</label>
   <input type="text" id="nickname" placeholder="Zadej přezdívku" />
 
   <button id="submitButton">Potvrdit návštěvu místa</button>
 
   <script>
+    const baseUrl = "https://script.google.com/macros/s/AKfycbz63NAMKSo6m7JrVxE3GdfbFaB6mJcH7Grh4FSymAwcQWClSXUk8io0t8yTll-7xMNE/exec";
+
     let globalText = "";
     let globalMapUrl = "";
+
+    // Vypočítá 8místný kód vázaný na nick a parametr 'code' (stabilní pro danou dvojici).
+    async function deriveNickCode(nick, urlCode) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(`${nick}|${urlCode}`);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+      return hex.slice(0, 8).toUpperCase(); // 8 znaků, např. "A1B2C3D4"
+    }
 
     window.addEventListener("DOMContentLoaded", function () {
       const params = new URLSearchParams(window.location.search);
@@ -93,7 +58,6 @@
         return;
       }
 
-      const baseUrl = "https://script.google.com/macros/s/AKfycbz63NAMKSo6m7JrVxE3GdfbFaB6mJcH7Grh4FSymAwcQWClSXUk8io0t8yTll-7xMNE/exec";
       const apiUrl = `${baseUrl}?action=code&code=${encodeURIComponent(code)}`;
 
       fetch(apiUrl)
@@ -103,10 +67,8 @@
             document.getElementById("text").textContent = "Chyba: " + data.error;
             return;
           }
-
           globalText = data.text;
           globalMapUrl = data.mapUrl;
-
           document.getElementById("text").textContent = globalText;
         })
         .catch(error => {
@@ -116,36 +78,38 @@
 
       const nickInput = document.getElementById("nickname");
       const ulozenyNick = localStorage.getItem("nickname");
-      if (ulozenyNick) {
-        nickInput.value = ulozenyNick;
-      }
+      if (ulozenyNick) nickInput.value = ulozenyNick;
 
-      document.getElementById("submitButton").addEventListener("click", function () {
+      document.getElementById("submitButton").addEventListener("click", async function () {
         const nick = nickInput.value.trim();
         if (!nick) {
           alert("Zadej prosím přezdívku.");
           return;
         }
 
+        // Vytvoření kódu (neukazuje se uživateli)
+        const nickCode = await deriveNickCode(nick, code);
+
+        // Uložení nicku pro příště
         localStorage.setItem("nickname", nick);
 
+        // Tělo požadavku – API dostane nick i jeho 8místný kód
         const odeslani = {
           datum: new Date().toISOString(),
-          code: code,
+          code: code,          // kód místa z URL (beze změny)
           text: globalText,
-          nick: nick
+          nick: nick,          // zobrazuje se v UI
+          nickCode: nickCode   // skrytý 8místný kód pro API
         };
 
         fetch(baseUrl, {
           method: "POST",
           mode: "no-cors",
-          headers: {
-            "Content-Type": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(odeslani)
         });
 
-        // ✅ Vyčisti stránku a zobraz jen poděkování a odkazy
+        // UI: pouze poděkování a odkazy (kód se NIKDE nezobrazuje)
         const statsUrl = `${baseUrl}?action=stats&nick=${encodeURIComponent(nick)}`;
         document.body.innerHTML = `
           <h1>Děkuji</h1>
@@ -158,4 +122,3 @@
 
 </body>
 </html>
-
