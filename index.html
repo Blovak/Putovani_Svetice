@@ -33,14 +33,25 @@
     let globalText = "";
     let globalMapUrl = "";
 
-    // Hash -> 8místný kód vázaný na (nick | code)
+    // ---- Hash helpers ----
+    async function sha256Hex(text) {
+      if (window.crypto && crypto.subtle) {
+        const enc = new TextEncoder().encode(text);
+        const buf = await crypto.subtle.digest("SHA-256", enc);
+        return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
+      }
+      // Fallback: FNV-1a 32-bit -> 8 hex znaků
+      let h = 0x811c9dc5;
+      for (let i = 0; i < text.length; i++) {
+        h ^= text.charCodeAt(i);
+        h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+      }
+      return h.toString(16).padStart(8, "0");
+    }
+
     async function deriveNickCode(nick, urlCode) {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(`${nick}|${urlCode}`);
-      const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-      return hex.slice(0, 8).toUpperCase();
+      const hex = await sha256Hex(`${nick}|${urlCode}`);
+      return hex.slice(0, 8).toUpperCase(); // 8 znaků
     }
 
     window.addEventListener("DOMContentLoaded", function () {
@@ -52,12 +63,52 @@
         return;
       }
 
-      // Klíče vázané na konkrétní 'code' (místo)
-      const LS_NICK_KEY = `nickname:${code}`;
-      const LS_NICKCODE_KEY = `nickCode:${code}`;
+      // Klíče v localStorage
+      const LS_GLOBAL_NICK = "nickname:global";
+      const LS_NICK_KEY    = `nickname:${code}`;
+      const LS_NICKCODE_KEY= `nickCode:${code}`;
 
+      const nickInput = document.getElementById("nickname");
+
+      // --- Načti a předvyplň nick (nejdřív lokální pro místo, pak globální) ---
+      (async () => {
+        let nick = localStorage.getItem(LS_NICK_KEY);
+        if (!nick) {
+          const globalNick = localStorage.getItem(LS_GLOBAL_NICK);
+          if (globalNick) {
+            nick = globalNick;
+            localStorage.setItem(LS_NICK_KEY, nick); // zapiš i pro toto místo
+          }
+        }
+        if (nick) {
+          nickInput.value = nick; // << vždy přepíše input
+          // dopočti/obnov kód, pokud chybí
+          let nc = localStorage.getItem(LS_NICKCODE_KEY);
+          if (!nc) {
+            nc = await deriveNickCode(nick, code);
+            localStorage.setItem(LS_NICKCODE_KEY, nc);
+          }
+        }
+      })();
+
+      // --- Při psaní nicku okamžitě ukládej a přepočítávej kód ---
+      nickInput.addEventListener("input", async function () {
+        const nick = nickInput.value.trim();
+        if (!nick) {
+          localStorage.removeItem(LS_GLOBAL_NICK);
+          localStorage.removeItem(LS_NICK_KEY);
+          localStorage.removeItem(LS_NICKCODE_KEY);
+          return;
+        }
+        localStorage.setItem(LS_GLOBAL_NICK, nick); // globální pro pohodlí
+        localStorage.setItem(LS_NICK_KEY, nick);    // pro konkrétní místo
+
+        const nickCode = await deriveNickCode(nick, code);
+        localStorage.setItem(LS_NICKCODE_KEY, nickCode);
+      });
+
+      // --- Načtení textu/mapy ---
       const apiUrl = `${baseUrl}?action=code&code=${encodeURIComponent(code)}`;
-
       fetch(apiUrl)
         .then(res => res.json())
         .then(data => {
@@ -69,40 +120,11 @@
           globalMapUrl = data.mapUrl;
           document.getElementById("text").textContent = globalText;
         })
-        .catch(error => {
-          console.error(error);
+        .catch(() => {
           document.getElementById("text").textContent = "Chyba při načítání dat.";
         });
 
-      const nickInput = document.getElementById("nickname");
-
-      // Předvyplnění z localStorage
-      (async () => {
-        const storedNick = localStorage.getItem(LS_NICK_KEY);
-        const storedNickCode = localStorage.getItem(LS_NICKCODE_KEY);
-        if (storedNick) {
-          nickInput.value = storedNick;
-          // Pokud chybí kód (starší verze), dopočti a ulož
-          if (!storedNickCode) {
-            const nc = await deriveNickCode(storedNick, code);
-            localStorage.setItem(LS_NICKCODE_KEY, nc);
-          }
-        }
-      })();
-
-      // Při změně nicku vždy přepočítat a uložit nickCode
-      nickInput.addEventListener("change", async function () {
-        const nick = nickInput.value.trim();
-        if (!nick) {
-          localStorage.removeItem(LS_NICK_KEY);
-          localStorage.removeItem(LS_NICKCODE_KEY);
-          return;
-        }
-        const nickCode = await deriveNickCode(nick, code);
-        localStorage.setItem(LS_NICK_KEY, nick);
-        localStorage.setItem(LS_NICKCODE_KEY, nickCode);
-      });
-
+      // --- Odeslání ---
       document.getElementById("submitButton").addEventListener("click", async function () {
         const nick = nickInput.value.trim();
         if (!nick) {
@@ -110,14 +132,13 @@
           return;
         }
 
-        // Zjisti nickCode z localStorage, případně dopočítej (pro jistotu)
+        // Z localStorage, případně přepočítej (pojistka)
         let nickCode = localStorage.getItem(LS_NICKCODE_KEY);
-        const storedNick = localStorage.getItem(LS_NICK_KEY);
-
-        if (!nickCode || storedNick !== nick) {
+        if (!nickCode) {
           nickCode = await deriveNickCode(nick, code);
           localStorage.setItem(LS_NICK_KEY, nick);
           localStorage.setItem(LS_NICKCODE_KEY, nickCode);
+          localStorage.setItem(LS_GLOBAL_NICK, nick);
         }
 
         const odeslani = {
@@ -135,11 +156,11 @@
           body: JSON.stringify(odeslani)
         });
 
-        // statsUrl: nick+nickCode (viditelné v URL)
+        // statsUrl: nick+nickCode (pozor: + je URL-enkódované jako %2B)
         const statsParam = `${nick}+${nickCode}`;
         const statsUrl = `${baseUrl}?action=stats&nick=${encodeURIComponent(statsParam)}`;
 
-        // UI: poděkování + odkazy (kód se v textu nezobrazuje)
+        // UI jen s odkazy (kód se nezobrazuje v textu)
         document.body.innerHTML = `
           <h1>Děkuji</h1>
           <p><a href="${globalMapUrl}" target="_blank">Odkaz na mapu</a></p>
