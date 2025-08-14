@@ -33,27 +33,6 @@
     let globalText = "";
     let globalMapUrl = "";
 
-    // --- Hash helpers (SHA-256 s fallbackem na FNV-1a) ---
-    async function sha256Hex(text) {
-      if (crypto && crypto.subtle) {
-        const enc = new TextEncoder().encode(text);
-        const buf = await crypto.subtle.digest("SHA-256", enc);
-        return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
-      }
-      // FNV-1a 32-bit fallback
-      let h = 0x811c9dc5;
-      for (let i = 0; i < text.length; i++) {
-        h ^= text.charCodeAt(i);
-        h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
-      }
-      return h.toString(16).padStart(8, "0");
-    }
-
-    async function deriveNickCode(nick, urlCode) {
-      const hex = await sha256Hex(`${nick}|${urlCode}`);
-      return hex.slice(0, 8).toUpperCase();
-    }
-
     window.addEventListener("DOMContentLoaded", function () {
       const params = new URLSearchParams(window.location.search);
       const code = params.get("code");
@@ -63,14 +42,13 @@
         return;
       }
 
-      // Klíče pro localStorage svázané s konkrétním 'code'
+      // Klíče pro localStorage (vázané na konkrétní místo)
       const LS_GLOBAL_NICK = "nickname:global";
       const LS_NICK_KEY    = `nickname:${code}`;
-      const LS_NICKCODE_KEY= `nickCode:${code}`;
 
       const nickInput = document.getElementById("nickname");
 
-      // Načti text/mapu
+      // Načtení textu/mapy
       const apiUrl = `${baseUrl}?action=code&code=${encodeURIComponent(code)}`;
       fetch(apiUrl)
         .then(r => r.json())
@@ -84,75 +62,55 @@
           document.getElementById("text").textContent = "Chyba při načítání dat.";
         });
 
-      // Předvyplnění nicku + doplnění nickCode pokud chybí
-      (async () => {
+      // Předvyplnění nicku (nejdřív pro místo, pak globální)
+      (function prefillNick() {
         let nick = localStorage.getItem(LS_NICK_KEY) || localStorage.getItem(LS_GLOBAL_NICK) || "";
         if (nick) {
           nickInput.value = nick;
-          let nc = localStorage.getItem(LS_NICKCODE_KEY);
-          if (!nc) {
-            nc = await deriveNickCode(nick, code);
-            localStorage.setItem(LS_NICKCODE_KEY, nc);
-          }
+          // zarovnej úložiště
           localStorage.setItem(LS_NICK_KEY, nick);
           localStorage.setItem(LS_GLOBAL_NICK, nick);
         }
       })();
 
-      // Při psaní nicku hned ukládej a přepočítej nickCode
-      nickInput.addEventListener("input", async function () {
+      // Při psaní nicku hned ukládej
+      nickInput.addEventListener("input", function () {
         const nick = nickInput.value.trim();
         if (!nick) {
           localStorage.removeItem(LS_GLOBAL_NICK);
           localStorage.removeItem(LS_NICK_KEY);
-          localStorage.removeItem(LS_NICKCODE_KEY);
           return;
         }
-        const nickCode = await deriveNickCode(nick, code);
         localStorage.setItem(LS_GLOBAL_NICK, nick);
         localStorage.setItem(LS_NICK_KEY, nick);
-        localStorage.setItem(LS_NICKCODE_KEY, nickCode);
       });
 
       // Odeslání
-      document.getElementById("submitButton").addEventListener("click", async function () {
+      document.getElementById("submitButton").addEventListener("click", function () {
         const nick = nickInput.value.trim();
         if (!nick) {
           alert("Zadej prosím přezdívku.");
           return;
         }
 
-        // Vezmi nickCode z localStorage nebo ho spočti
-        let nickCode = localStorage.getItem(LS_NICKCODE_KEY);
-        if (!nickCode) {
-          nickCode = await deriveNickCode(nick, code);
-          localStorage.setItem(LS_NICKCODE_KEY, nickCode);
-          localStorage.setItem(LS_NICK_KEY, nick);
-          localStorage.setItem(LS_GLOBAL_NICK, nick);
-        }
-
-        // Posílej jako x-www-form-urlencoded ⇒ Apps Script je načte v e.parameter
+        // Posílej jako x-www-form-urlencoded ⇒ Apps Script načte v e.parameter
         const payload = new URLSearchParams({
           action: "visit",
           datum: new Date().toISOString(),
           code: code,
           text: globalText,
-          nick: nick,
-          nickCode: nickCode,      // velbloudí zápis
-          nickcode: nickCode,      // alias malými písmeny (pro jistotu)
-          nick_plus_code: `${nick}+${nickCode}`
+          nick: nick
         }).toString();
 
         fetch(baseUrl, {
           method: "POST",
-          mode: "no-cors", // chceme jen odeslat; odpověď nečteme
+          mode: "no-cors",
           headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
           body: payload
         });
 
-        // Odkaz na statistiky: nick+nickCode v parametru
-        const statsParam = `${nick}+${nickCode}`;
-        const statsUrl = `${baseUrl}?action=stats&nick=${encodeURIComponent(statsParam)}`;
+        // Statistiky jen s nickem
+        const statsUrl = `${baseUrl}?action=stats&nick=${encodeURIComponent(nick)}`;
 
         document.body.innerHTML = `
           <h1>Děkuji</h1>
