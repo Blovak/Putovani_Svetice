@@ -5,13 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Zápis do Google Tabulky</title>
   <style>
-  body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-    padding: 0;
-    background-color: #f9f9f9;
-    text-align: center;
-  }
+  body { font-family: Arial, sans-serif; margin: 20px; padding: 0; background-color: #f9f9f9; text-align: center; }
   img.logo { display: block; max-width: 100%; height: auto; margin: 0 auto 10px auto; }
   h1 { font-size: 1.5em; color: #333; margin: 10px 0; }
   a { display: inline-block; margin-top: 20px; font-size: 1.1em; color: #0077cc; text-decoration: none; }
@@ -39,14 +33,14 @@
     let globalText = "";
     let globalMapUrl = "";
 
-    // Vypočítá 8místný kód vázaný na nick a parametr 'code' (stabilní pro danou dvojici).
+    // Hash -> 8místný kód vázaný na (nick | code)
     async function deriveNickCode(nick, urlCode) {
       const encoder = new TextEncoder();
       const data = encoder.encode(`${nick}|${urlCode}`);
       const hashBuffer = await crypto.subtle.digest("SHA-256", data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const hex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-      return hex.slice(0, 8).toUpperCase(); // 8 znaků, např. "A1B2C3D4"
+      return hex.slice(0, 8).toUpperCase();
     }
 
     window.addEventListener("DOMContentLoaded", function () {
@@ -57,6 +51,10 @@
         document.getElementById("text").textContent = "Chybí parametr ?code v URL.";
         return;
       }
+
+      // Klíče vázané na konkrétní 'code' (místo)
+      const LS_NICK_KEY = `nickname:${code}`;
+      const LS_NICKCODE_KEY = `nickCode:${code}`;
 
       const apiUrl = `${baseUrl}?action=code&code=${encodeURIComponent(code)}`;
 
@@ -77,10 +75,33 @@
         });
 
       const nickInput = document.getElementById("nickname");
-      const ulozenyNick = localStorage.getItem("nickname");
-      const nickCode = localStorage.getItem("nickCode");
-      
-      if (ulozenyNick) nickInput.value = ulozenyNick;
+
+      // Předvyplnění z localStorage
+      (async () => {
+        const storedNick = localStorage.getItem(LS_NICK_KEY);
+        const storedNickCode = localStorage.getItem(LS_NICKCODE_KEY);
+        if (storedNick) {
+          nickInput.value = storedNick;
+          // Pokud chybí kód (starší verze), dopočti a ulož
+          if (!storedNickCode) {
+            const nc = await deriveNickCode(storedNick, code);
+            localStorage.setItem(LS_NICKCODE_KEY, nc);
+          }
+        }
+      })();
+
+      // Při změně nicku vždy přepočítat a uložit nickCode
+      nickInput.addEventListener("change", async function () {
+        const nick = nickInput.value.trim();
+        if (!nick) {
+          localStorage.removeItem(LS_NICK_KEY);
+          localStorage.removeItem(LS_NICKCODE_KEY);
+          return;
+        }
+        const nickCode = await deriveNickCode(nick, code);
+        localStorage.setItem(LS_NICK_KEY, nick);
+        localStorage.setItem(LS_NICKCODE_KEY, nickCode);
+      });
 
       document.getElementById("submitButton").addEventListener("click", async function () {
         const nick = nickInput.value.trim();
@@ -89,22 +110,22 @@
           return;
         }
 
-        // Vytvoření kódu (neukazuje se uživateli)
-        if (!nickCode) {
-            const nickCode = await deriveNickCode(nick, code);
-        } 
+        // Zjisti nickCode z localStorage, případně dopočítej (pro jistotu)
+        let nickCode = localStorage.getItem(LS_NICKCODE_KEY);
+        const storedNick = localStorage.getItem(LS_NICK_KEY);
 
-        // Uložení nicku pro příště
-        localStorage.setItem("nickname", nick);
-        localStorage.setItem("nickCode", nickCode);
+        if (!nickCode || storedNick !== nick) {
+          nickCode = await deriveNickCode(nick, code);
+          localStorage.setItem(LS_NICK_KEY, nick);
+          localStorage.setItem(LS_NICKCODE_KEY, nickCode);
+        }
 
-        // Tělo požadavku – API dostane nick i jeho 8místný kód
         const odeslani = {
           datum: new Date().toISOString(),
-          code: code,          // kód místa z URL (beze změny)
+          code: code,
           text: globalText,
-          nick: nick+nickCode,          // zobrazuje se v UI
-          nickCode: nickCode   // skrytý 8místný kód pro API
+          nick: nick,
+          nickCode: nickCode
         };
 
         fetch(baseUrl, {
@@ -114,8 +135,11 @@
           body: JSON.stringify(odeslani)
         });
 
-        // UI: pouze poděkování a odkazy (kód se NIKDE nezobrazuje)
-        const statsUrl = `${baseUrl}?action=stats&nick=${encodeURIComponent(nick+nickCode)}`;
+        // statsUrl: nick+nickCode (viditelné v URL)
+        const statsParam = `${nick}+${nickCode}`;
+        const statsUrl = `${baseUrl}?action=stats&nick=${encodeURIComponent(statsParam)}`;
+
+        // UI: poděkování + odkazy (kód se v textu nezobrazuje)
         document.body.innerHTML = `
           <h1>Děkuji</h1>
           <p><a href="${globalMapUrl}" target="_blank">Odkaz na mapu</a></p>
@@ -127,4 +151,3 @@
 
 </body>
 </html>
-
