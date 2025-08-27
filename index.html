@@ -2,19 +2,20 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Zápis do Google Tabulky</title>
   <style>
-  body { font-family: Arial, sans-serif; margin: 20px; padding: 0; background-color: #f9f9f9; text-align: center; }
-  img.logo { display: block; max-width: 100%; height: auto; margin: 0 auto 10px auto; }
-  h1 { font-size: 1.5em; color: #333; margin: 10px 0; }
-  a { display: inline-block; margin-top: 20px; font-size: 1.1em; color: #0077cc; text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  label, input, button { display: block; width: 100%; margin-bottom: 15px; font-size: 1em; }
-  input { padding: 10px; box-sizing: border-box; }
-  button { padding: 12px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
-  button:hover { background-color: #45a049; }
-  @media (min-width: 600px) { body { max-width: 400px; margin: 40px auto; } }
+    body { font-family: Arial, sans-serif; margin: 20px; padding: 0; background-color: #f9f9f9; text-align: center; }
+    img.logo { display: block; max-width: 100%; height: auto; margin: 0 auto 10px auto; }
+    h1 { font-size: 1.5em; color: #333; margin: 10px 0; }
+    a { display: inline-block; margin-top: 20px; font-size: 1.1em; color: #0077cc; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    label, input, button { display: block; width: 100%; margin-bottom: 15px; font-size: 1em; }
+    input { padding: 10px; box-sizing: border-box; }
+    button { padding: 12px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    button:hover { background-color: #45a049; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    @media (min-width: 600px) { body { max-width: 400px; margin: 40px auto; } }
   </style>
 </head>
 <body>
@@ -28,7 +29,8 @@
   <button id="submitButton">Potvrdit návštěvu místa</button>
 
   <script>
-    const baseUrl = "https://script.google.com/macros/s/AKfycbxJPQroK9Y6zas55g104Droby_EF4fUlCFyPbL_P50al_h4JlIgjV2Ev2LOpCsOPK7r/exec";
+    // !!! ZKONTROLUJ, že je to NOVÉ /exec URL z posledního nasazení webové aplikace !!!
+    const baseUrl = "https://script.google.com/macros/s/AKfycbz5zK-FxliMc2NWF00Q3RB6osVKLkL85WPZ818GLHmiz-kFH85FgJXVx_Pb4a_GTRnL/exec";
 
     let globalText = "";
     let globalMapUrl = "";
@@ -39,41 +41,48 @@
 
       if (!code) {
         document.getElementById("text").textContent = "Chybí parametr ?code v URL.";
+        document.getElementById("submitButton").disabled = true;
         return;
       }
 
-      // Klíče pro localStorage (vázané na konkrétní místo)
+      // Klíče pro localStorage
       const LS_GLOBAL_NICK = "nickname:global";
       const LS_NICK_KEY    = `nickname:${code}`;
 
       const nickInput = document.getElementById("nickname");
+      const submitBtn = document.getElementById("submitButton");
 
-      // Načtení textu/mapy
+      // 1) Načtení textu/mapy
       const apiUrl = `${baseUrl}?action=code&code=${encodeURIComponent(code)}`;
       fetch(apiUrl)
         .then(r => r.json())
         .then(data => {
-          if (data.error) throw new Error(data.error);
-          globalText = data.text;
-          globalMapUrl = data.mapUrl;
-          document.getElementById("text").textContent = globalText;
+          if (data && data.text) {
+            globalText = data.text || "";
+            globalMapUrl = data.mapUrl || "#";
+            document.getElementById("text").textContent = globalText;
+          } else if (data && data.error) {
+            document.getElementById("text").textContent = data.error;
+          } else {
+            document.getElementById("text").textContent = "Neočekávaná odpověď serveru.";
+          }
         })
         .catch(() => {
           document.getElementById("text").textContent = "Chyba při načítání dat.";
         });
 
-      // Předvyplnění nicku (nejdřív pro místo, pak globální)
+      // 2) Předvyplnění nicku
       (function prefillNick() {
         let nick = localStorage.getItem(LS_NICK_KEY) || localStorage.getItem(LS_GLOBAL_NICK) || "";
         if (nick) {
           nickInput.value = nick;
-          // zarovnej úložiště
+          // sjednoť úložiště
           localStorage.setItem(LS_NICK_KEY, nick);
           localStorage.setItem(LS_GLOBAL_NICK, nick);
         }
       })();
 
-      // Při psaní nicku hned ukládej
+      // 3) Při psaní nicku hned ukládej
       nickInput.addEventListener("input", function () {
         const nick = nickInput.value.trim();
         if (!nick) {
@@ -85,43 +94,67 @@
         localStorage.setItem(LS_NICK_KEY, nick);
       });
 
-      // Odeslání
-      document.getElementById("submitButton").addEventListener("click", function () {
+      // 4) Odeslání s blokací dvojkliku a čekáním na výsledek
+      submitBtn.addEventListener("click", async function () {
         const nick = nickInput.value.trim();
         if (!nick) {
           alert("Zadej prosím přezdívku.");
           return;
         }
 
-        // Posílej jako x-www-form-urlencoded ⇒ Apps Script načte v e.parameter
-        const payload = new URLSearchParams({
-          action: "visit",
-          datum: new Date().toISOString(),
-          code: code,
-          text: globalText,
-          nick: nick
-        }).toString();
+        submitBtn.disabled = true;
+        const originalLabel = submitBtn.textContent;
+        submitBtn.textContent = "Odesílám...";
 
-        fetch(baseUrl, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-          body: payload
-        });
+        try {
+          const payload = new URLSearchParams({
+            action: "visit",
+            datum: new Date().toISOString(), // datum může brát i GAS, tohle je informativní
+            code: code,
+            text: globalText,
+            nick: nick
+          }).toString();
 
-        // Statistiky jen s nickem
-        const statsUrl = `${baseUrl}?action=stats&nick=${encodeURIComponent(nick)}`;
+          const resp = await fetch(baseUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+            body: payload
+          });
 
-        document.body.innerHTML = `
-          <h1>Děkuji</h1>
-          <p><a href="${globalMapUrl}" target="_blank">Odkaz na mapu</a></p>
-          <p><a href="${statsUrl}" target="_blank">Statistiky</a></p>
-        `;
+          const raw = await resp.text();
+          let ok = false;
+          try {
+            const json = JSON.parse(raw);
+            ok = json && json.status === "OK";
+          } catch (_) {
+            ok = /^OK$/i.test(raw) || raw.toUpperCase().includes("OK");
+          }
+
+          if (!ok) {
+            console.error("Neúspěch:", raw);
+            alert("Nepodařilo se zapsat do tabulky. Zkus to prosím znovu.");
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalLabel;
+            return;
+          }
+
+          // Statistiky jen s nickem
+          const statsUrl = `${baseUrl}?action=stats&nick=${encodeURIComponent(nick)}`;
+
+          document.body.innerHTML = `
+            <h1>Děkuji</h1>
+            <p><a href="${globalMapUrl}" target="_blank" rel="noopener noreferrer">Odkaz na mapu</a></p>
+            <p><a href="${statsUrl}" target="_blank" rel="noopener noreferrer">Statistiky</a></p>
+          `;
+        } catch (err) {
+          console.error(err);
+          alert("Chyba spojení. Zkus to prosím znovu.");
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalLabel;
+        }
       });
     });
   </script>
 
 </body>
 </html>
-
-
