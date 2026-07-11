@@ -1,163 +1,558 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Zápis do Google Tabulky</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Putování Světice</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; padding: 0; background-color: #f9f9f9; text-align: center; }
-    img.logo { display: block; max-width: 100%; height: auto; margin: 0 auto 10px auto; }
-    h1 { font-size: 1.5em; color: #333; margin: 10px 0; }
-    a { display: inline-block; margin-top: 20px; font-size: 1.1em; color: #0077cc; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    label, input, button { display: block; width: 100%; margin-bottom: 15px; font-size: 1em; }
-    input { padding: 10px; box-sizing: border-box; }
-    button { padding: 12px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    button:hover { background-color: #45a049; }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
-    @media (min-width: 600px) { body { max-width: 400px; margin: 40px auto; } }
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f3;
+      --surface: #ffffff;
+      --text: #202620;
+      --muted: #667066;
+      --border: #d8ddd7;
+      --primary: #287346;
+      --primary-hover: #1f5d38;
+      --danger: #a12b2b;
+      --focus: #7db691;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+    }
+
+    main {
+      width: min(100% - 32px, 440px);
+      margin: 32px auto;
+    }
+
+    .logo {
+      display: block;
+      width: 100%;
+      height: auto;
+      margin-bottom: 18px;
+    }
+
+    .panel {
+      padding: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    h1 {
+      margin: 0 0 22px;
+      font-size: 24px;
+      line-height: 1.3;
+      text-align: center;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin: 24px 0 12px;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    p { line-height: 1.5; }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      font-weight: 700;
+    }
+
+    input {
+      width: 100%;
+      min-height: 46px;
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      border: 1px solid #aab3aa;
+      border-radius: 5px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+    }
+
+    input:focus {
+      outline: 3px solid var(--focus);
+      outline-offset: 1px;
+      border-color: var(--primary);
+    }
+
+    #verificationCode {
+      font-size: 22px;
+      letter-spacing: 6px;
+      text-align: center;
+    }
+
+    button, .button-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 11px 16px;
+      border: 1px solid transparent;
+      border-radius: 5px;
+      font: inherit;
+      font-weight: 700;
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    button:focus-visible, .button-link:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    button:disabled { opacity: .6; cursor: wait; }
+
+    .primary {
+      width: 100%;
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .primary:hover:not(:disabled) { background: var(--primary-hover); }
+
+    .secondary {
+      background: #fff;
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .text-button {
+      min-height: 36px;
+      padding: 6px 4px;
+      background: transparent;
+      color: var(--primary);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .actions > * { flex: 1 1 150px; }
+
+    .account {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .account-email {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      color: var(--muted);
+    }
+
+    .status {
+      min-height: 22px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .status.error { color: var(--danger); }
+    .status.success { color: var(--primary); }
+
+    .hidden { display: none !important; }
+
+    table {
+      width: 100%;
+      margin-top: 10px;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 9px 7px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+
+    th { color: var(--muted); }
+    td:last-child, th:last-child { text-align: center; }
+
+    @media (max-width: 480px) {
+      main { width: min(100% - 20px, 440px); margin: 14px auto; }
+      .panel { padding: 20px 16px; }
+    }
   </style>
 </head>
 <body>
+  <main>
+    <img src="logo.png" alt="Putování Světice" class="logo">
 
-  <img src="logo.png" alt="Logo" class="logo" />
-  <h1 id="text">Načítám text...</h1>
+    <section class="panel" aria-live="polite">
+      <h1 id="pointText">Načítám místo...</h1>
 
-  <label for="nickname">Tvé jméno:</label>
-  <input type="text" id="nickname" placeholder="Zadej jméno ( příjmení a číslo popisné )" />
+      <div id="emailStep" class="hidden">
+        <form id="emailForm">
+          <label for="email">E-mail</label>
+          <input id="email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" required>
+          <button id="sendCodeButton" class="primary" type="submit">Poslat ověřovací kód</button>
+        </form>
+      </div>
 
-  <button id="submitButton">Potvrdit návštěvu místa</button>
+      <div id="codeStep" class="hidden">
+        <p>Na adresu <strong id="pendingEmail"></strong> jsme poslali ověřovací kód.</p>
+        <form id="codeForm">
+          <label for="verificationCode">Ověřovací kód</label>
+          <input id="verificationCode" name="verificationCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
+          <button id="verifyButton" class="primary" type="submit">Ověřit e-mail</button>
+        </form>
+        <div class="actions">
+          <button id="changeEmailButton" class="text-button" type="button">Změnit e-mail</button>
+          <button id="resendButton" class="text-button" type="button">Poslat kód znovu</button>
+        </div>
+      </div>
+
+      <div id="visitStep" class="hidden">
+        <div class="account">
+          <span id="accountEmail" class="account-email"></span>
+          <button id="logoutButton" class="text-button" type="button">Odhlásit</button>
+        </div>
+        <button id="visitButton" class="primary" type="button">Potvrdit návštěvu místa</button>
+      </div>
+
+      <div id="resultStep" class="hidden">
+        <p id="resultMessage" class="status success"></p>
+        <div class="actions">
+          <a id="mapLink" class="button-link secondary hidden" target="_blank" rel="noopener noreferrer">Otevřít mapu</a>
+          <button id="statsButton" class="secondary" type="button">Zobrazit statistiky</button>
+        </div>
+        <div id="statsSection" class="hidden">
+          <h2>Statistiky</h2>
+          <p id="emptyStats" class="hidden">Zatím nejsou evidovány žádné dokončené trasy.</p>
+          <table id="statsTable" class="hidden">
+            <thead><tr><th>Trasa</th><th>Vzdálenost</th><th>Dokončeno</th></tr></thead>
+            <tbody id="statsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <p id="status" class="status"></p>
+    </section>
+  </main>
 
   <script>
-    // !!! ZKONTROLUJ, že je to NOVÉ /exec URL z posledního nasazení webové aplikace !!!
-    const baseUrl = "https://script.google.com/macros/s/AKfycbxJPQroK9Y6zas55g104Droby_EF4fUlCFyPbL_P50al_h4JlIgjV2Ev2LOpCsOPK7r/exec";
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxJPQroK9Y6zas55g104Droby_EF4fUlCFyPbL_P50al_h4JlIgjV2Ev2LOpCsOPK7r/exec';
+    const SESSION_KEY = 'putovani:session';
+    const EMAIL_KEY = 'putovani:email';
 
-    let globalText = "";
-    let globalMapUrl = "";
+    const state = {
+      pointCode: '',
+      point: null,
+      email: '',
+      sessionToken: localStorage.getItem(SESSION_KEY) || ''
+    };
 
-    window.addEventListener("DOMContentLoaded", function () {
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get("code");
+    const elements = {};
 
-      if (!code) {
-        document.getElementById("text").textContent = "Chybí parametr ?code v URL.";
-        document.getElementById("submitButton").disabled = true;
+    window.addEventListener('DOMContentLoaded', initialize);
+
+    async function initialize() {
+      Object.assign(elements, {
+        pointText: document.getElementById('pointText'),
+        emailStep: document.getElementById('emailStep'),
+        codeStep: document.getElementById('codeStep'),
+        visitStep: document.getElementById('visitStep'),
+        resultStep: document.getElementById('resultStep'),
+        emailForm: document.getElementById('emailForm'),
+        email: document.getElementById('email'),
+        sendCodeButton: document.getElementById('sendCodeButton'),
+        pendingEmail: document.getElementById('pendingEmail'),
+        codeForm: document.getElementById('codeForm'),
+        verificationCode: document.getElementById('verificationCode'),
+        verifyButton: document.getElementById('verifyButton'),
+        changeEmailButton: document.getElementById('changeEmailButton'),
+        resendButton: document.getElementById('resendButton'),
+        accountEmail: document.getElementById('accountEmail'),
+        logoutButton: document.getElementById('logoutButton'),
+        visitButton: document.getElementById('visitButton'),
+        resultMessage: document.getElementById('resultMessage'),
+        mapLink: document.getElementById('mapLink'),
+        statsButton: document.getElementById('statsButton'),
+        statsSection: document.getElementById('statsSection'),
+        emptyStats: document.getElementById('emptyStats'),
+        statsTable: document.getElementById('statsTable'),
+        statsBody: document.getElementById('statsBody'),
+        status: document.getElementById('status')
+      });
+
+      bindEvents();
+      elements.email.value = localStorage.getItem(EMAIL_KEY) || '';
+      state.pointCode = new URLSearchParams(window.location.search).get('code') || '';
+
+      if (!state.pointCode) {
+        elements.pointText.textContent = 'QR kód neobsahuje identifikaci místa.';
+        showStatus('Použijte QR kód umístěný na trase.', true);
         return;
       }
 
-      // Klíče pro localStorage
-      const LS_GLOBAL_NICK = "nickname:global";
-      const LS_NICK_KEY    = `nickname:${code}`;
+      const pointLoaded = await loadPoint();
+      if (!pointLoaded) return;
 
-      const nickInput = document.getElementById("nickname");
-      const submitBtn = document.getElementById("submitButton");
+      if (state.sessionToken) {
+        const sessionValid = await restoreSession();
+        if (sessionValid) return;
+      }
+      showStep('email');
+    }
 
-      // 1) Načtení textu/mapy
-      const apiUrl = `${baseUrl}?action=code&code=${encodeURIComponent(code)}`;
-      fetch(apiUrl)
-        .then(r => r.json())
-        .then(data => {
-          if (data && data.text) {
-            globalText = data.text || "";
-            globalMapUrl = data.mapUrl || "#";
-            document.getElementById("text").textContent = globalText;
-          } else if (data && data.error) {
-            document.getElementById("text").textContent = data.error;
-          } else {
-            document.getElementById("text").textContent = "Neočekávaná odpověď serveru.";
-          }
-        })
-        .catch(() => {
-          document.getElementById("text").textContent = "Chyba při načítání dat.";
+    function bindEvents() {
+      elements.emailForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        state.email = elements.email.value.trim().toLowerCase();
+        if (!elements.email.reportValidity()) return;
+        await requestCode(false);
+      });
+
+      elements.codeForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        const code = elements.verificationCode.value.replace(/\s/g, '');
+        if (!/^\d{6}$/.test(code)) {
+          showStatus('Zadejte šestimístný kód.', true);
+          return;
+        }
+        await verifyCode(code);
+      });
+
+      elements.changeEmailButton.addEventListener('click', function () {
+        elements.verificationCode.value = '';
+        showStatus('');
+        showStep('email');
+        elements.email.focus();
+      });
+
+      elements.resendButton.addEventListener('click', function () { requestCode(true); });
+      elements.visitButton.addEventListener('click', recordVisit);
+      elements.statsButton.addEventListener('click', loadStats);
+      elements.logoutButton.addEventListener('click', logout);
+    }
+
+    async function loadPoint() {
+      try {
+        const response = await fetch(API_URL + '?action=code&code=' + encodeURIComponent(state.pointCode));
+        const data = await response.json();
+        if (data.status !== 'OK') throw new Error(data.error || 'POINT_NOT_FOUND');
+        state.point = data;
+        elements.pointText.textContent = data.text || 'Bod trasy';
+        return true;
+      } catch (error) {
+        elements.pointText.textContent = 'Místo se nepodařilo načíst.';
+        showStatus(messageForError(error.message), true);
+        return false;
+      }
+    }
+
+    async function restoreSession() {
+      try {
+        const data = await apiPost({ action: 'session', sessionToken: state.sessionToken });
+        if (data.status !== 'OK') {
+          clearSession();
+          return false;
+        }
+        state.email = data.email;
+        localStorage.setItem(EMAIL_KEY, state.email);
+        showAuthenticated();
+        return true;
+      } catch (_) {
+        showStatus('Nepodařilo se ověřit přihlášení. Zkontrolujte připojení.', true);
+        return false;
+      }
+    }
+
+    async function requestCode(isResend) {
+      setBusy(elements.sendCodeButton, true, 'Odesílám...');
+      setBusy(elements.resendButton, true, 'Odesílám...');
+      showStatus('');
+      try {
+        const data = await apiPost({ action: 'requestCode', email: state.email });
+        if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
+        localStorage.setItem(EMAIL_KEY, state.email);
+        elements.pendingEmail.textContent = state.email;
+        showStep('code');
+        showStatus(isResend ? 'Nový kód byl odeslán.' : 'Zkontrolujte svou e-mailovou schránku.');
+        elements.verificationCode.focus();
+      } catch (error) {
+        showStatus(messageForError(error.message), true);
+      } finally {
+        setBusy(elements.sendCodeButton, false, 'Poslat ověřovací kód');
+        setBusy(elements.resendButton, false, 'Poslat kód znovu');
+      }
+    }
+
+    async function verifyCode(code) {
+      setBusy(elements.verifyButton, true, 'Ověřuji...');
+      showStatus('');
+      try {
+        const data = await apiPost({
+          action: 'verifyCode',
+          email: state.email,
+          verificationCode: code
         });
+        if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
+        state.sessionToken = data.sessionToken;
+        state.email = data.email;
+        localStorage.setItem(SESSION_KEY, state.sessionToken);
+        localStorage.setItem(EMAIL_KEY, state.email);
+        showAuthenticated();
+        showStatus('E-mail byl ověřen.', false, true);
+      } catch (error) {
+        showStatus(messageForError(error.message), true);
+      } finally {
+        setBusy(elements.verifyButton, false, 'Ověřit e-mail');
+      }
+    }
 
-      // 2) Předvyplnění nicku
-      (function prefillNick() {
-        let nick = localStorage.getItem(LS_NICK_KEY) || localStorage.getItem(LS_GLOBAL_NICK) || "";
-        if (nick) {
-          nickInput.value = nick;
-          // sjednoť úložiště
-          localStorage.setItem(LS_NICK_KEY, nick);
-          localStorage.setItem(LS_GLOBAL_NICK, nick);
+    async function recordVisit() {
+      setBusy(elements.visitButton, true, 'Zapisuji...');
+      showStatus('');
+      try {
+        const data = await apiPost({
+          action: 'visit',
+          sessionToken: state.sessionToken,
+          code: state.pointCode
+        });
+        if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
+        elements.visitStep.classList.add('hidden');
+        elements.resultStep.classList.remove('hidden');
+        elements.resultMessage.textContent = 'Návštěva místa byla zaznamenána.';
+        const mapUrl = data.mapUrl || (state.point && state.point.mapUrl) || '';
+        if (/^https:\/\//i.test(mapUrl)) {
+          elements.mapLink.href = mapUrl;
+          elements.mapLink.classList.remove('hidden');
         }
-      })();
+        showStatus('');
+      } catch (error) {
+        if (error.message === 'UNAUTHORIZED') {
+          clearSession();
+          showStep('email');
+        }
+        showStatus(messageForError(error.message), true);
+      } finally {
+        setBusy(elements.visitButton, false, 'Potvrdit návštěvu místa');
+      }
+    }
 
-      // 3) Při psaní nicku hned ukládej
-      nickInput.addEventListener("input", function () {
-        const nick = nickInput.value.trim();
-        if (!nick) {
-          localStorage.removeItem(LS_GLOBAL_NICK);
-          localStorage.removeItem(LS_NICK_KEY);
-          return;
-        }
-        localStorage.setItem(LS_GLOBAL_NICK, nick);
-        localStorage.setItem(LS_NICK_KEY, nick);
+    async function loadStats() {
+      setBusy(elements.statsButton, true, 'Načítám...');
+      showStatus('');
+      try {
+        const data = await apiPost({ action: 'stats', sessionToken: state.sessionToken });
+        if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
+        renderStats(data.stats || []);
+      } catch (error) {
+        showStatus(messageForError(error.message), true);
+      } finally {
+        setBusy(elements.statsButton, false, 'Zobrazit statistiky');
+      }
+    }
+
+    function renderStats(stats) {
+      elements.statsBody.replaceChildren();
+      elements.statsSection.classList.remove('hidden');
+      elements.emptyStats.classList.toggle('hidden', stats.length > 0);
+      elements.statsTable.classList.toggle('hidden', stats.length === 0);
+      stats.forEach(function (item) {
+        const row = document.createElement('tr');
+        [item.route, item.distance, item.success ? 'Ano' : ''].forEach(function (value) {
+          const cell = document.createElement('td');
+          cell.textContent = value || '';
+          row.appendChild(cell);
+        });
+        elements.statsBody.appendChild(row);
       });
+    }
 
-      // 4) Odeslání s blokací dvojkliku a čekáním na výsledek
-      submitBtn.addEventListener("click", async function () {
-        const nick = nickInput.value.trim();
-        if (!nick) {
-          alert("Zadej prosím přezdívku.");
-          return;
-        }
+    async function logout() {
+      const oldToken = state.sessionToken;
+      clearSession();
+      showStep('email');
+      showStatus('Byli jste odhlášeni.');
+      if (oldToken) {
+        try { await apiPost({ action: 'logout', sessionToken: oldToken }); } catch (_) {}
+      }
+    }
 
-        submitBtn.disabled = true;
-        const originalLabel = submitBtn.textContent;
-        submitBtn.textContent = "Odesílám...";
+    function showAuthenticated() {
+      elements.accountEmail.textContent = state.email;
+      showStep('visit');
+    }
 
-        try {
-          const payload = new URLSearchParams({
-            action: "visit",
-            datum: new Date().toISOString(), // datum může brát i GAS, tohle je informativní
-            code: code,
-            text: globalText,
-            nick: nick
-          }).toString();
+    function showStep(step) {
+      elements.emailStep.classList.toggle('hidden', step !== 'email');
+      elements.codeStep.classList.toggle('hidden', step !== 'code');
+      elements.visitStep.classList.toggle('hidden', step !== 'visit');
+      elements.resultStep.classList.add('hidden');
+      elements.statsSection.classList.add('hidden');
+    }
 
-          const resp = await fetch(baseUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-            body: payload
-          });
+    function clearSession() {
+      state.sessionToken = '';
+      localStorage.removeItem(SESSION_KEY);
+    }
 
-          const raw = await resp.text();
-          let ok = false;
-          try {
-            const json = JSON.parse(raw);
-            ok = json && json.status === "OK";
-          } catch (_) {
-            ok = /^OK$/i.test(raw) || raw.toUpperCase().includes("OK");
-          }
-
-          if (!ok) {
-            console.error("Neúspěch:", raw);
-            alert("Nepodařilo se zapsat do tabulky. Zkus to prosím znovu.");
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalLabel;
-            return;
-          }
-
-          // Statistiky jen s nickem
-          const statsUrl = `${baseUrl}?action=stats&nick=${encodeURIComponent(nick)}`;
-
-          document.body.innerHTML = `
-            <h1>Děkuji</h1>
-            <p><a href="${globalMapUrl}" target="_blank" rel="noopener noreferrer">Odkaz na mapu</a></p>
-            <p><a href="${statsUrl}" target="_blank" rel="noopener noreferrer">Statistiky</a></p>
-          `;
-        } catch (err) {
-          console.error(err);
-          alert("Chyba spojení. Zkus to prosím znovu.");
-          submitBtn.disabled = false;
-          submitBtn.textContent = originalLabel;
-        }
+    async function apiPost(payload) {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+        body: new URLSearchParams(payload).toString()
       });
-    });
+      const text = await response.text();
+      try {
+        return JSON.parse(text);
+      } catch (_) {
+        throw new Error('INVALID_RESPONSE');
+      }
+    }
+
+    function setBusy(button, busy, label) {
+      button.disabled = busy;
+      button.textContent = label;
+    }
+
+    function showStatus(message, isError, isSuccess) {
+      elements.status.textContent = message || '';
+      elements.status.classList.toggle('error', Boolean(isError));
+      elements.status.classList.toggle('success', Boolean(isSuccess));
+    }
+
+    function messageForError(error) {
+      const messages = {
+        INVALID_EMAIL: 'Zadejte platnou e-mailovou adresu.',
+        TOO_MANY_REQUESTS: 'Nový kód lze poslat nejdříve za jednu minutu.',
+        INVALID_CODE: 'Ověřovací kód není správný.',
+        CODE_EXPIRED: 'Platnost kódu vypršela. Pošlete si nový kód.',
+        TOO_MANY_ATTEMPTS: 'Kód byl zadán příliš mnohokrát. Pošlete si nový kód.',
+        UNAUTHORIZED: 'Přihlášení vypršelo. Ověřte prosím e-mail znovu.',
+        INVALID_POINT: 'Tento bod trasy není platný.',
+        POINT_NOT_FOUND: 'Tento bod trasy nebyl nalezen.',
+        MISSING_CODE: 'V odkazu chybí kód místa.',
+        INVALID_RESPONSE: 'Server vrátil neplatnou odpověď.',
+        SERVER_ERROR: 'Na serveru nastala chyba. Zkuste to prosím později.',
+        EMAIL_QUOTA_EXCEEDED: 'Dnes již nelze odeslat další ověřovací e-mail. Zkuste to prosím zítra.'
+      };
+      return messages[error] || 'Operaci se nepodařilo dokončit. Zkontrolujte připojení a zkuste to znovu.';
+    }
   </script>
-
 </body>
 </html>
-
-
-
