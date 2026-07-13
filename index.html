@@ -172,6 +172,17 @@
     .status.error { color: var(--danger); }
     .status.success { color: var(--primary); }
 
+    .total-distance {
+      margin: 0 0 16px;
+      padding: 14px;
+      border-radius: 6px;
+      background: #edf6f0;
+      color: var(--primary);
+      font-size: 16px;
+      font-weight: 700;
+      text-align: center;
+    }
+
     .hidden { display: none !important; }
 
     table {
@@ -240,6 +251,7 @@
         </div>
         <div id="statsSection" class="hidden">
           <h2>Statistiky</h2>
+          <p id="totalDistance" class="total-distance"></p>
           <p id="emptyStats" class="hidden">Zatím nejsou evidovány žádné dokončené trasy.</p>
           <table id="statsTable" class="hidden">
             <thead><tr><th>Trasa</th><th>Vzdálenost</th><th>Dokončeno</th></tr></thead>
@@ -291,6 +303,7 @@
         mapLink: document.getElementById('mapLink'),
         statsButton: document.getElementById('statsButton'),
         statsSection: document.getElementById('statsSection'),
+        totalDistance: document.getElementById('totalDistance'),
         emptyStats: document.getElementById('emptyStats'),
         statsTable: document.getElementById('statsTable'),
         statsBody: document.getElementById('statsBody'),
@@ -459,7 +472,7 @@
       try {
         const data = await apiPost({ action: 'stats', sessionToken: state.sessionToken });
         if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
-        renderStats(data.stats || []);
+        renderStats(data.stats || [], data.totalDistanceKm);
       } catch (error) {
         showStatus(messageForError(error.message), true);
       } finally {
@@ -467,9 +480,12 @@
       }
     }
 
-    function renderStats(stats) {
+    function renderStats(stats, totalDistanceKm) {
       elements.statsBody.replaceChildren();
       elements.statsSection.classList.remove('hidden');
+      const distance = Number(totalDistanceKm) || 0;
+      elements.totalDistance.textContent = 'Všichni účastníci společně ušli ' +
+        new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 2 }).format(distance) + ' km.';
       elements.emptyStats.classList.toggle('hidden', stats.length > 0);
       elements.statsTable.classList.toggle('hidden', stats.length === 0);
       stats.forEach(function (item) {
