@@ -484,7 +484,7 @@
       elements.statsBody.replaceChildren();
       elements.statsSection.classList.remove('hidden');
       const distance = Number(totalDistanceKm) || 0;
-      elements.totalDistance.textContent = 'Všichni účastníci společně ušli ' +
+      elements.totalDistance.textContent = 'Všichni účastníci zatím společně ušli ' +
         new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 2 }).format(distance) + ' km.';
       elements.emptyStats.classList.toggle('hidden', stats.length > 0);
       elements.statsTable.classList.toggle('hidden', stats.length === 0);
