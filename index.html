@@ -347,6 +347,10 @@
         </div>
       </div>
 
+      <div id="pointLoadingStep" class="hidden">
+        <p class="scanner-intro">Načítám údaje o místě…</p>
+      </div>
+
       <div id="emailStep" class="hidden">
         <form id="emailForm">
           <label for="email">E-mail</label>
@@ -481,6 +485,7 @@
       Object.assign(elements, {
         pointText: document.getElementById('pointText'),
         scanStep: document.getElementById('scanStep'),
+        pointLoadingStep: document.getElementById('pointLoadingStep'),
         scanAccountEmail: document.getElementById('scanAccountEmail'),
         scanLogoutButton: document.getElementById('scanLogoutButton'),
         startScanButton: document.getElementById('startScanButton'),
@@ -620,14 +625,15 @@
 
     async function continueWithPoint() {
       const pointLoaded = await loadPoint();
-      if (!pointLoaded) return;
+      if (!pointLoaded) return false;
 
       if (state.sessionToken) {
         const sessionValid = await restoreSession();
-        if (sessionValid) return;
-        if (sessionValid === null) return;
+        if (sessionValid) return true;
+        if (sessionValid === null) return true;
       }
       showEmailStep();
+      return true;
     }
 
     async function startScanner() {
@@ -690,11 +696,19 @@
 
       state.acceptingScan = false;
       state.pointCode = scanned.code;
-      await stopScanner();
       history.replaceState(null, '', window.location.pathname + scanned.search + window.location.hash);
       elements.pointText.textContent = 'Načítám místo...';
       showStatus('');
-      await continueWithPoint();
+      showStep('pointLoading');
+      await stopScanner();
+      const pointReady = await continueWithPoint();
+      if (!pointReady) {
+        state.pointCode = '';
+        state.point = null;
+        history.replaceState(null, '', window.location.pathname + window.location.hash);
+        setHeadingForStep('scan');
+        showStep('scan');
+      }
     }
 
     function parsePointQrCode(value) {
@@ -1157,6 +1171,7 @@
 
     function showStep(step) {
       elements.scanStep.classList.toggle('hidden', step !== 'scan');
+      elements.pointLoadingStep.classList.toggle('hidden', step !== 'pointLoading');
       elements.emailStep.classList.toggle('hidden', step !== 'email');
       elements.codeStep.classList.toggle('hidden', step !== 'code');
       elements.sessionRecoveryStep.classList.toggle('hidden', step !== 'sessionRecovery');
