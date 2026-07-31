@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#6d4c41">
+  <title>Hnědá trasa – Světické kilometrobrání</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    :root {
+      --route: #6d4c41;
+      --route-dark: #3e2723;
+      --surface: rgba(255, 255, 255, .96);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body, #map {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      overflow: hidden;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #211814;
+      background: #e8e4df;
+    }
+
+    #map { z-index: 0; }
+
+    .route-info {
+      position: fixed;
+      z-index: 1000;
+      top: max(12px, env(safe-area-inset-top));
+      left: max(12px, env(safe-area-inset-left));
+      width: min(330px, calc(100% - 72px));
+      padding: 14px;
+      border: 1px solid rgba(62, 39, 35, .22);
+      border-radius: 10px;
+      background: var(--surface);
+      box-shadow: 0 4px 18px rgba(33, 24, 20, .22);
+    }
+
+    .route-info h1 {
+      margin: 0 0 4px;
+      color: var(--route-dark);
+      font-size: 22px;
+      line-height: 1.15;
+    }
+
+    .route-info p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .route-summary { font-weight: 700; }
+
+    .location-button {
+      width: 100%;
+      margin-top: 11px;
+      padding: 10px 12px;
+      border: 0;
+      border-radius: 7px;
+      background: var(--route);
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .location-button:focus-visible {
+      outline: 3px solid #1976d2;
+      outline-offset: 2px;
+    }
+
+    .location-button[disabled] {
+      opacity: .65;
+      cursor: wait;
+    }
+
+    .location-status {
+      min-height: 1.25em;
+      margin-top: 7px !important;
+      color: #5d514b;
+      font-size: 12px !important;
+    }
+
+    .route-marker {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border: 3px solid #fff;
+      border-radius: 50%;
+      background: var(--route);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      line-height: 1;
+      text-align: center;
+      box-shadow: 0 2px 7px rgba(0, 0, 0, .5);
+    }
+
+    .route-marker--waypoint {
+      width: 28px;
+      height: 28px;
+      border: 3px solid var(--route);
+      background: #fff;
+      color: var(--route-dark);
+      font-size: 13px;
+    }
+
+    .position-marker {
+      width: 20px;
+      height: 20px;
+      border: 4px solid #fff;
+      border-radius: 50%;
+      background: #1976d2;
+      box-shadow: 0 0 0 2px #1976d2, 0 2px 8px rgba(0, 0, 0, .45);
+    }
+
+    .leaflet-popup-content {
+      margin: 12px 16px;
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    .leaflet-control-attribution { font-size: 10px; }
+
+    @media (max-width: 480px) {
+      .route-info {
+        width: min(285px, calc(100% - 68px));
+        padding: 12px;
+      }
+
+      .route-info h1 { font-size: 19px; }
+      .route-info p { font-size: 13px; }
+      .location-button { padding: 9px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <aside class="route-info" aria-label="Informace o trase">
+    <h1>Hnědá trasa</h1>
+    <p class="route-summary">3,5 km · start u zvoničky · cíl u obecního úřadu</p>
+    <button id="locationButton" class="location-button" type="button">Ukázat moji polohu</button>
+    <p id="locationStatus" class="location-status" aria-live="polite"></p>
+  </aside>
+
+  <main id="map" aria-label="Interaktivní mapa hnědé trasy"></main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const ROUTE_COORDINATES = [
+      [49.9699155, 14.6657494], [49.9696571, 14.6659116],
+      [49.9693805, 14.6647764], [49.9689634, 14.6642969],
+      [49.9675126, 14.6639091], [49.9672723, 14.6638598],
+      [49.9666557, 14.6636765], [49.9660210, 14.6636342],
+      [49.9653998, 14.6636553], [49.9647787, 14.6637540],
+      [49.9641530, 14.6638527], [49.9626977, 14.6635707],
+      [49.9627612, 14.6633098], [49.9631692, 14.6626047],
+      [49.9636997, 14.6621041], [49.9642165, 14.6615964],
+      [49.9643933, 14.6606587], [49.9644659, 14.6596856],
+      [49.9645792, 14.6587549], [49.9650462, 14.6582120],
+      [49.9655812, 14.6577607], [49.9660799, 14.6574928],
+      [49.9675760, 14.6572390], [49.9681881, 14.6571755],
+      [49.9688092, 14.6571050], [49.9694304, 14.6569499],
+      [49.9700062, 14.6565762], [49.9705729, 14.6561743],
+      [49.9711804, 14.6559204], [49.9718061, 14.6560685],
+      [49.9723819, 14.6564211], [49.9728488, 14.6569851],
+      [49.9729622, 14.6575915], [49.9727899, 14.6576691],
+      [49.9723909, 14.6583812], [49.9712212, 14.6598055],
+      [49.9706636, 14.6605952], [49.9703190, 14.6614061],
+      [49.9706636, 14.6628727], [49.9710489, 14.6645931],
+      [49.9717562, 14.6651219]
+    ];
+
+    const ROUTE_POINTS = [
+      { label: 'START', title: 'Start – zvonička', position: [49.9699155, 14.6657494] },
+      { label: '2', title: 'Průchozí bod 2', position: [49.9675126, 14.6639091], waypoint: true },
+      { label: '3', title: 'Průchozí bod 3', position: [49.9626977, 14.6635707], waypoint: true },
+      { label: 'QR', title: 'Kontrolní QR – dřevěná informační tabule', position: [49.9660799, 14.6574928] },
+      { label: '5', title: 'Průchozí bod 5', position: [49.9729622, 14.6575915], waypoint: true },
+      { label: '6', title: 'Průchozí bod 6', position: [49.9712212, 14.6598055], waypoint: true },
+      { label: 'CÍL', title: 'Cíl – Obecní úřad Světice', position: [49.9717562, 14.6651219] }
+    ];
+
+    const map = L.map('map', { preferCanvas: true, zoomControl: false });
+    L.control.zoom({ position: 'topright' }).addTo(map);
+    L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    L.polyline(ROUTE_COORDINATES, {
+      color: '#fff',
+      weight: 10,
+      opacity: .92,
+      lineJoin: 'round'
+    }).addTo(map);
+
+    const routeLine = L.polyline(ROUTE_COORDINATES, {
+      color: '#6d4c41',
+      weight: 6,
+      opacity: 1,
+      lineJoin: 'round'
+    }).addTo(map);
+
+    function markerIcon(point) {
+      const waypointClass = point.waypoint ? ' route-marker--waypoint' : '';
+      const size = point.waypoint ? 28 : 42;
+      return L.divIcon({
+        className: '',
+        html: '<span class="route-marker' + waypointClass + '">' + point.label + '</span>',
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+        popupAnchor: [0, -size / 2]
+      });
+    }
+
+    ROUTE_POINTS.forEach(function (point) {
+      L.marker(point.position, {
+        icon: markerIcon(point),
+        title: point.title,
+        keyboard: true
+      }).addTo(map).bindPopup('<strong>' + point.title + '</strong>');
+    });
+
+    map.fitBounds(routeLine.getBounds(), {
+      paddingTopLeft: [24, 175],
+      paddingBottomRight: [24, 24],
+      maxZoom: 16
+    });
+
+    const locationButton = document.getElementById('locationButton');
+    const locationStatus = document.getElementById('locationStatus');
+    let locationWatchId = null;
+    let locationMarker = null;
+    let accuracyCircle = null;
+    let locationCentered = false;
+
+    function stopLocation() {
+      if (locationWatchId !== null) navigator.geolocation.clearWatch(locationWatchId);
+      locationWatchId = null;
+      locationCentered = false;
+      locationButton.disabled = false;
+      locationButton.textContent = 'Ukázat moji polohu';
+      locationStatus.textContent = '';
+    }
+
+    function showLocation(position) {
+      const coordinates = [position.coords.latitude, position.coords.longitude];
+      const accuracy = Math.max(position.coords.accuracy || 0, 5);
+      const positionIcon = L.divIcon({
+        className: '',
+        html: '<span class="position-marker" aria-hidden="true"></span>',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+
+      if (!locationMarker) {
+        locationMarker = L.marker(coordinates, {
+          icon: positionIcon,
+          title: 'Moje poloha',
+          zIndexOffset: 1000
+        }).addTo(map).bindPopup('<strong>Moje poloha</strong>');
+        accuracyCircle = L.circle(coordinates, {
+          radius: accuracy,
+          color: '#1976d2',
+          fillColor: '#64b5f6',
+          fillOpacity: .16,
+          weight: 2
+        }).addTo(map);
+      } else {
+        locationMarker.setLatLng(coordinates);
+        accuracyCircle.setLatLng(coordinates).setRadius(accuracy);
+      }
+
+      if (!locationCentered) {
+        map.setView(coordinates, Math.max(map.getZoom(), 16));
+        locationCentered = true;
+      }
+      locationButton.disabled = false;
+      locationButton.textContent = 'Vypnout sledování polohy';
+      locationStatus.textContent = 'Poloha je zobrazena s přesností přibližně ' + Math.round(accuracy) + ' m.';
+    }
+
+    function locationError(error) {
+      stopLocation();
+      if (error.code === error.PERMISSION_DENIED) {
+        locationStatus.textContent = 'Prohlížeč nemá povolený přístup k poloze.';
+      } else if (error.code === error.TIMEOUT) {
+        locationStatus.textContent = 'Polohu se nepodařilo zjistit včas. Zkuste to znovu.';
+      } else {
+        locationStatus.textContent = 'Aktuální polohu se nepodařilo zjistit.';
+      }
+    }
+
+    locationButton.addEventListener('click', function () {
+      if (locationWatchId !== null) {
+        stopLocation();
+        return;
+      }
+      if (!navigator.geolocation) {
+        locationStatus.textContent = 'Tento prohlížeč zobrazení polohy nepodporuje.';
+        return;
+      }
+      locationButton.disabled = true;
+      locationButton.textContent = 'Zjišťuji polohu…';
+      locationStatus.textContent = 'Povolte prohlížeči přístup k poloze.';
+      locationWatchId = navigator.geolocation.watchPosition(showLocation, locationError, {
+        enableHighAccuracy: true,
+        maximumAge: 5000,
+        timeout: 15000
+      });
+    });
+
+    window.addEventListener('pagehide', function () {
+      if (locationWatchId !== null) navigator.geolocation.clearWatch(locationWatchId);
+    });
+  </script>
+</body>
+</html>
