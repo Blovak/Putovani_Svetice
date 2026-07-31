@@ -457,7 +457,7 @@
     <header class="app-header">
       <p class="app-name">Světické kilometrobraní</p>
       <nav class="app-nav" aria-label="Hlavní nabídka">
-        <a class="button-link text-button" href="mapa.html">Přehled tras</a>
+        <a id="headerRoutesLink" class="button-link text-button hidden" href="mapa.html">Přehled tras</a>
         <button id="helpButton" class="text-button" type="button">Nápověda</button>
       </nav>
     </header>
@@ -717,6 +717,7 @@
         adminLoadMoreButton: document.getElementById('adminLoadMoreButton'),
         status: document.getElementById('status'),
         helpButton: document.getElementById('helpButton'),
+        headerRoutesLink: document.getElementById('headerRoutesLink'),
         helpDialog: document.getElementById('helpDialog'),
         helpCloseButton: document.getElementById('helpCloseButton'),
         helpText: document.getElementById('helpText')
@@ -1323,6 +1324,7 @@
     function showAuthenticated() {
       elements.accountEmail.textContent = state.email;
       elements.scanAccountEmail.textContent = state.email;
+      elements.headerRoutesLink.classList.remove('hidden');
       updateAdminControls();
       if (state.pointCode) {
         setHeadingForStep('visit');
@@ -1468,6 +1470,7 @@
       state.activeRoute = '';
       state.activeRouteLastPoint = '';
       state.isAdmin = false;
+      elements.headerRoutesLink.classList.add('hidden');
       updateAdminControls();
       localStorage.removeItem(SESSION_KEY);
     }
