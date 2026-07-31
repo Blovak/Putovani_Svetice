@@ -2,25 +2,25 @@ UŽIVATELSKÝ NÁVOD
 
 Světické kilometrobraní zaznamenává Vaše návštěvy bodů na trasách a sčítá dokončené kilometry. Každou trasu můžete absolvovat opakovaně.
 
-1. OTEVŘENÍ APLIKACE A NAČTENÍ BODU
+1. PŘIHLÁŠENÍ POMOCÍ E-MAILU
 
-Nejjednodušší je naskenovat QR kód běžným fotoaparátem telefonu a otevřít zobrazený odkaz. Aplikace automaticky načte příslušný bod trasy.
+Pokud aplikaci otevřete bez QR odkazu, nejprve se přihlaste. Zadejte svou e-mailovou adresu a klepněte na „Poslat ověřovací kód“. Na zadaný e-mail obdržíte šestimístný kód s platností 10 minut.
 
-Pokud otevřete aplikaci bez QR odkazu:
+Kód opište do aplikace a klepněte na „Ověřit e-mail“. Po úspěšném ověření zůstanete na zařízení přihlášeni i pro další body. Jednu e-mailovou adresu používejte po celou dobu akce, aby se všechny výsledky správně spojily.
+
+Pokud jste zadali nesprávný e-mail, zvolte „Změnit e-mail“. Nový kód lze odeslat pomocí volby „Poslat kód znovu“.
+
+2. NAČTENÍ BODU TRASY
+
+Po přihlášení aplikace nabídne naskenování QR kódu:
 
 • klepněte na „Naskenovat QR kód“,
 • povolte aplikaci přístup k fotoaparátu,
 • namiřte fotoaparát na QR kód umístěný na trase.
 
+QR kód můžete také naskenovat běžným fotoaparátem telefonu a otevřít zobrazený odkaz. V takovém případě aplikace automaticky načte příslušný bod a následně Vás v případě potřeby vyzve k přihlášení.
+
 Používejte pouze QR kódy projektu Světické kilometrobraní. Na jednotlivých trasách najdete startovní, kontrolní a cílové body.
-
-2. PŘIHLÁŠENÍ POMOCÍ E-MAILU
-
-Při prvním použití zadejte svou e-mailovou adresu a klepněte na „Poslat ověřovací kód“. Na zadaný e-mail obdržíte šestimístný kód s platností 10 minut.
-
-Kód opište do aplikace a klepněte na „Ověřit e-mail“. Po úspěšném ověření zůstanete na zařízení přihlášeni i pro další body. Jednu e-mailovou adresu používejte po celou dobu akce, aby se všechny výsledky správně spojily.
-
-Pokud jste zadali nesprávný e-mail, zvolte „Změnit e-mail“. Nový kód lze odeslat pomocí volby „Poslat kód znovu“.
 
 3. ZAZNAMENÁNÍ NÁVŠTĚVY
 

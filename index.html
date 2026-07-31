@@ -333,8 +333,13 @@
       <h1 id="pointText">Načítám místo...</h1>
 
       <div id="scanStep" class="hidden">
+        <div class="account">
+          <span id="scanAccountEmail" class="account-email"></span>
+          <button id="scanLogoutButton" class="text-button" type="button">Odhlásit</button>
+        </div>
         <p class="scanner-intro">Namiřte fotoaparát na QR kód umístěný na trase.</p>
         <button id="startScanButton" class="primary" type="button">Naskenovat QR kód</button>
+        <button id="adminScanButton" class="secondary admin-entry hidden" type="button">Přepnout do admin režimu</button>
         <div id="qrReader" class="qr-reader hidden"></div>
         <div id="scannerActions" class="scanner-actions hidden">
           <button id="stopScanButton" class="text-button" type="button">Ukončit skenování</button>
@@ -454,7 +459,10 @@
       Object.assign(elements, {
         pointText: document.getElementById('pointText'),
         scanStep: document.getElementById('scanStep'),
+        scanAccountEmail: document.getElementById('scanAccountEmail'),
+        scanLogoutButton: document.getElementById('scanLogoutButton'),
         startScanButton: document.getElementById('startScanButton'),
+        adminScanButton: document.getElementById('adminScanButton'),
         qrReader: document.getElementById('qrReader'),
         scannerActions: document.getElementById('scannerActions'),
         stopScanButton: document.getElementById('stopScanButton'),
@@ -508,8 +516,11 @@
       state.pointCode = new URLSearchParams(window.location.search).get('code') || '';
 
       if (!state.pointCode) {
-        elements.pointText.textContent = 'Naskenujte QR kód trasy';
-        showStep('scan');
+        if (state.sessionToken) {
+          const sessionValid = await restoreSession();
+          if (sessionValid) return;
+        }
+        showEmailStep();
         return;
       }
 
@@ -537,7 +548,7 @@
       elements.changeEmailButton.addEventListener('click', function () {
         elements.verificationCode.value = '';
         showStatus('');
-        showStep('email');
+        showEmailStep();
         elements.email.focus();
       });
 
@@ -545,8 +556,10 @@
       elements.visitButton.addEventListener('click', recordVisit);
       elements.statsButton.addEventListener('click', loadStats);
       elements.logoutButton.addEventListener('click', logout);
+      elements.scanLogoutButton.addEventListener('click', logout);
       elements.adminEntryButton.addEventListener('click', enterAdminMode);
       elements.adminResultButton.addEventListener('click', enterAdminMode);
+      elements.adminScanButton.addEventListener('click', enterAdminMode);
       elements.exitAdminButton.addEventListener('click', exitAdminMode);
       elements.adminUsersButton.addEventListener('click', loadAdminUsers);
       elements.adminLogButton.addEventListener('click', function () { loadAdminLog(true); });
@@ -571,7 +584,7 @@
         const sessionValid = await restoreSession();
         if (sessionValid) return;
       }
-      showStep('email');
+      showEmailStep();
     }
 
     async function startScanner() {
@@ -783,7 +796,7 @@
       } catch (error) {
         if (error.message === 'UNAUTHORIZED') {
           clearSession();
-          showStep('email');
+          showEmailStep();
         }
         showStatus(messageForError(error.message), true);
       } finally {
@@ -824,9 +837,16 @@
       });
     }
 
-    function enterAdminMode() {
+    async function enterAdminMode() {
       if (!state.isAdmin) return;
-      state.adminReturnStep = elements.resultStep.classList.contains('hidden') ? 'visit' : 'result';
+      if (!elements.scanStep.classList.contains('hidden')) {
+        state.adminReturnStep = 'scan';
+        await stopScanner();
+      } else if (!elements.resultStep.classList.contains('hidden')) {
+        state.adminReturnStep = 'result';
+      } else {
+        state.adminReturnStep = 'visit';
+      }
       elements.pointText.textContent = 'Administrace';
       elements.adminEmail.textContent = state.email;
       elements.adminContent.classList.add('hidden');
@@ -838,7 +858,7 @@
     }
 
     function exitAdminMode() {
-      elements.pointText.textContent = state.point && state.point.text ? state.point.text : 'Bod trasy';
+      setHeadingForStep(state.adminReturnStep);
       showStatus('');
       showStep(state.adminReturnStep);
     }
@@ -932,8 +952,7 @@
     function handleAdminError(error) {
       if (error.message === 'UNAUTHORIZED') {
         clearSession();
-        elements.pointText.textContent = state.point && state.point.text ? state.point.text : 'Bod trasy';
-        showStep('email');
+        showEmailStep();
       } else if (error.message === 'FORBIDDEN') {
         state.isAdmin = false;
         updateAdminControls();
@@ -945,7 +964,7 @@
     async function logout() {
       const oldToken = state.sessionToken;
       clearSession();
-      showStep('email');
+      showEmailStep();
       showStatus('Byli jste odhlášeni.');
       if (oldToken) {
         try { await apiPost({ action: 'logout', sessionToken: oldToken }); } catch (_) {}
@@ -954,8 +973,14 @@
 
     function showAuthenticated() {
       elements.accountEmail.textContent = state.email;
+      elements.scanAccountEmail.textContent = state.email;
       updateAdminControls();
-      showStep('visit');
+      if (state.pointCode) {
+        showStep('visit');
+      } else {
+        setHeadingForStep('scan');
+        showStep('scan');
+      }
     }
 
     function applyAccess(data) {
@@ -967,6 +992,22 @@
       if (!elements.adminEntryButton) return;
       elements.adminEntryButton.classList.toggle('hidden', !state.isAdmin);
       elements.adminResultButton.classList.toggle('hidden', !state.isAdmin);
+      elements.adminScanButton.classList.toggle('hidden', !state.isAdmin);
+    }
+
+    function showEmailStep() {
+      setHeadingForStep('email');
+      showStep('email');
+    }
+
+    function setHeadingForStep(step) {
+      if (step === 'scan') {
+        elements.pointText.textContent = 'Naskenujte QR kód trasy';
+      } else if (state.point && state.point.text) {
+        elements.pointText.textContent = state.point.text;
+      } else {
+        elements.pointText.textContent = 'Přihlášení';
+      }
     }
 
     function showStep(step) {
