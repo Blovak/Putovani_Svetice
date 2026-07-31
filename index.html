@@ -577,6 +577,7 @@
       scanner: null,
       scanInProgress: false,
       acceptingScan: false,
+      activeRoute: '',
       isAdmin: false,
       adminReturnStep: 'visit',
       adminLogOffset: 0
@@ -786,6 +787,7 @@
       state.point = null;
       history.replaceState(null, '', window.location.pathname + window.location.hash);
       setHeadingForStep('scan');
+      applyActiveRouteTheme();
       showStatus('');
       showStep('scan');
       startScanner();
@@ -988,6 +990,12 @@
           code: state.pointCode
         });
         if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
+        if (data.routeCompleted) {
+          state.activeRoute = '';
+          resetRouteTheme();
+        } else {
+          state.activeRoute = data.routeIncomplete ? String(data.route || '') : '';
+        }
         showStep('result');
         elements.resultMessage.textContent = 'Návštěva místa byla zaznamenána.';
         const mapUrl = data.mapUrl || (state.point && state.point.mapUrl) || '';
@@ -1013,6 +1021,8 @@
       try {
         const data = await apiPost({ action: 'stats', sessionToken: state.sessionToken });
         if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
+        state.activeRoute = String(data.activeRoute || '');
+        if (!state.point) applyActiveRouteTheme();
         renderStats(data.stats || [], data.totalDistanceKm, data.totalPersonalDistanceKm);
       } catch (error) {
         showStatus(messageForError(error.message), true);
@@ -1250,7 +1260,25 @@
         showStep('visit');
       } else {
         setHeadingForStep('scan');
+        applyActiveRouteTheme();
         showStep('scan');
+        loadActiveRouteTheme();
+      }
+    }
+
+    async function loadActiveRouteTheme() {
+      const requestedWithoutPoint = !state.pointCode && !state.point;
+      if (!requestedWithoutPoint || !state.sessionToken) return;
+      try {
+        const data = await apiPost({ action: 'stats', sessionToken: state.sessionToken });
+        if (data.status !== 'OK' || state.pointCode || state.point) return;
+        state.activeRoute = String(data.activeRoute || '');
+        if (!elements.scanStep.classList.contains('hidden') ||
+            !elements.resultStep.classList.contains('hidden')) {
+          applyActiveRouteTheme();
+        }
+      } catch (_) {
+        // Barva je pomocná informace; výpadek statistik nesmí blokovat aplikaci.
       }
     }
 
@@ -1294,6 +1322,16 @@
       elements.routeColorIndicator.style.backgroundColor = color;
       elements.routeColorIndicator.setAttribute('aria-label', 'Barva trasy: ' + route);
       elements.routeColorIndicator.classList.remove('hidden');
+      applyRouteTheme(routeName, color);
+    }
+
+    function applyActiveRouteTheme() {
+      const routeName = String(state.activeRoute || '').trim().toLowerCase();
+      const color = ROUTE_COLORS[routeName];
+      if (!color) {
+        resetRouteTheme();
+        return;
+      }
       applyRouteTheme(routeName, color);
     }
 
