@@ -195,11 +195,12 @@
   function markerIcon(point) {
     const controlClass = point.label === 'QR' ? ' route-marker--control' : '';
     const size = point.label === 'QR' ? 48 : 44;
+    const horizontalOffset = point.label === 'START' ? -18 : point.label === 'CÍL' ? 18 : 0;
     return L.divIcon({
       className: '',
       html: '<span class="route-marker' + controlClass + '">' + escapeHtml(point.label) + '</span>',
       iconSize: [size, size],
-      iconAnchor: [size / 2, size / 2],
+      iconAnchor: [size / 2 - horizontalOffset, size / 2],
       popupAnchor: [0, -size / 2]
     });
   }
