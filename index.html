@@ -174,6 +174,28 @@
       color: var(--muted);
     }
 
+    .scanner-intro {
+      margin: 0 0 18px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .qr-reader {
+      width: 100%;
+      margin-top: 16px;
+      overflow: hidden;
+      border-radius: 6px;
+    }
+
+    .qr-reader video {
+      border-radius: 6px;
+    }
+
+    .scanner-actions {
+      margin-top: 12px;
+      text-align: center;
+    }
+
     .status {
       min-height: 22px;
       margin: 14px 0 0;
@@ -279,6 +301,15 @@
     <section class="panel" aria-live="polite">
       <h1 id="pointText">Načítám místo...</h1>
 
+      <div id="scanStep" class="hidden">
+        <p class="scanner-intro">Namiřte fotoaparát na QR kód umístěný na trase.</p>
+        <button id="startScanButton" class="primary" type="button">Naskenovat QR kód</button>
+        <div id="qrReader" class="qr-reader hidden"></div>
+        <div id="scannerActions" class="scanner-actions hidden">
+          <button id="stopScanButton" class="text-button" type="button">Ukončit skenování</button>
+        </div>
+      </div>
+
       <div id="emailStep" class="hidden">
         <form id="emailForm">
           <label for="email">E-mail</label>
@@ -339,16 +370,22 @@
     </div>
   </dialog>
 
+  <script src="vendor/html5-qrcode/html5-qrcode.min.js"></script>
   <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbwob_-wf5eoG3bzOWRVu5PhxhyYI8KPQSn7d0SfiC0DK0O7OwJNsSPfH9KMNXywb0iC/exec';
     const SESSION_KEY = 'putovani:session';
     const EMAIL_KEY = 'putovani:email';
+    const QR_APP_ORIGIN = 'https://blovak.github.io';
+    const QR_APP_PATH = '/Putovani_Svetice/index.html';
 
     const state = {
       pointCode: '',
       point: null,
       email: '',
-      sessionToken: localStorage.getItem(SESSION_KEY) || ''
+      sessionToken: localStorage.getItem(SESSION_KEY) || '',
+      scanner: null,
+      scanInProgress: false,
+      acceptingScan: false
     };
 
     const elements = {};
@@ -358,6 +395,11 @@
     async function initialize() {
       Object.assign(elements, {
         pointText: document.getElementById('pointText'),
+        scanStep: document.getElementById('scanStep'),
+        startScanButton: document.getElementById('startScanButton'),
+        qrReader: document.getElementById('qrReader'),
+        scannerActions: document.getElementById('scannerActions'),
+        stopScanButton: document.getElementById('stopScanButton'),
         emailStep: document.getElementById('emailStep'),
         codeStep: document.getElementById('codeStep'),
         visitStep: document.getElementById('visitStep'),
@@ -394,19 +436,12 @@
       state.pointCode = new URLSearchParams(window.location.search).get('code') || '';
 
       if (!state.pointCode) {
-        elements.pointText.textContent = 'QR kód neobsahuje identifikaci místa.';
-        showStatus('Použijte QR kód umístěný na trase.', true);
+        elements.pointText.textContent = 'Naskenujte QR kód trasy';
+        showStep('scan');
         return;
       }
 
-      const pointLoaded = await loadPoint();
-      if (!pointLoaded) return;
-
-      if (state.sessionToken) {
-        const sessionValid = await restoreSession();
-        if (sessionValid) return;
-      }
-      showStep('email');
+      await continueWithPoint();
     }
 
     function bindEvents() {
@@ -438,6 +473,8 @@
       elements.visitButton.addEventListener('click', recordVisit);
       elements.statsButton.addEventListener('click', loadStats);
       elements.logoutButton.addEventListener('click', logout);
+      elements.startScanButton.addEventListener('click', startScanner);
+      elements.stopScanButton.addEventListener('click', stopScanner);
       elements.helpButton.addEventListener('click', showHelp);
       elements.helpCloseButton.addEventListener('click', function () {
         elements.helpDialog.close();
@@ -445,6 +482,117 @@
       elements.helpDialog.addEventListener('click', function (event) {
         if (event.target === elements.helpDialog) elements.helpDialog.close();
       });
+      window.addEventListener('pagehide', function () { stopScanner(); });
+    }
+
+    async function continueWithPoint() {
+      const pointLoaded = await loadPoint();
+      if (!pointLoaded) return;
+
+      if (state.sessionToken) {
+        const sessionValid = await restoreSession();
+        if (sessionValid) return;
+      }
+      showStep('email');
+    }
+
+    async function startScanner() {
+      if (state.scanInProgress) return;
+      if (typeof Html5Qrcode === 'undefined') {
+        showStatus('Skenování QR kódu se nepodařilo načíst. Obnovte stránku a zkuste to znovu.', true);
+        return;
+      }
+
+      showStatus('');
+      state.acceptingScan = true;
+      state.scanner = new Html5Qrcode('qrReader', {
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        verbose: false
+      });
+      elements.qrReader.classList.remove('hidden');
+      elements.scannerActions.classList.remove('hidden');
+      elements.startScanButton.classList.add('hidden');
+      setBusy(elements.stopScanButton, true, 'Spouštím fotoaparát...');
+
+      try {
+        await state.scanner.start(
+          { facingMode: 'environment' },
+          {
+            fps: 10,
+            qrbox: function (viewfinderWidth, viewfinderHeight) {
+              const edge = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.72);
+              return { width: edge, height: edge };
+            }
+          },
+          handleScannedCode,
+          function () {}
+        );
+        state.scanInProgress = true;
+        setBusy(elements.stopScanButton, false, 'Ukončit skenování');
+      } catch (error) {
+        await stopScanner();
+        showStatus(cameraErrorMessage(error), true);
+      }
+    }
+
+    async function handleScannedCode(decodedText) {
+      if (!state.acceptingScan) return;
+
+      const scanned = parsePointQrCode(decodedText);
+      if (!scanned) {
+        showStatus('Tento QR kód nepatří k aplikaci Světické kilometrobraní.', true);
+        return;
+      }
+
+      state.acceptingScan = false;
+      state.pointCode = scanned.code;
+      await stopScanner();
+      history.replaceState(null, '', window.location.pathname + scanned.search + window.location.hash);
+      elements.pointText.textContent = 'Načítám místo...';
+      showStatus('');
+      await continueWithPoint();
+    }
+
+    function parsePointQrCode(value) {
+      try {
+        const url = new URL(value);
+        const code = (url.searchParams.get('code') || '').trim();
+        if (url.origin !== QR_APP_ORIGIN || url.pathname !== QR_APP_PATH || !code || code.length > 100) {
+          return null;
+        }
+        return { code: code, search: url.search };
+      } catch (_) {
+        return null;
+      }
+    }
+
+    async function stopScanner() {
+      state.acceptingScan = false;
+      if (state.scanner) {
+        try {
+          if (state.scanInProgress) await state.scanner.stop();
+          state.scanner.clear();
+        } catch (_) {}
+      }
+      state.scanner = null;
+      state.scanInProgress = false;
+      elements.qrReader.classList.add('hidden');
+      elements.qrReader.replaceChildren();
+      elements.scannerActions.classList.add('hidden');
+      elements.startScanButton.classList.remove('hidden');
+      setBusy(elements.stopScanButton, false, 'Ukončit skenování');
+    }
+
+    function cameraErrorMessage(error) {
+      const name = error && error.name ? error.name : '';
+      const text = String(error || '');
+      if (name === 'NotAllowedError' || /NotAllowedError|Permission denied/i.test(text)) {
+        return 'Přístup k fotoaparátu byl zamítnut. Povolte jej v nastavení prohlížeče a zkuste to znovu.';
+      }
+      if (name === 'NotFoundError' || /NotFoundError|camera not found/i.test(text)) {
+        return 'Na zařízení nebyl nalezen použitelný fotoaparát.';
+      }
+      return 'Fotoaparát se nepodařilo spustit. Zkontrolujte jeho oprávnění a zkuste to znovu.';
     }
 
     async function showHelp() {
@@ -613,6 +761,7 @@
     }
 
     function showStep(step) {
+      elements.scanStep.classList.toggle('hidden', step !== 'scan');
       elements.emailStep.classList.toggle('hidden', step !== 'email');
       elements.codeStep.classList.toggle('hidden', step !== 'code');
       elements.visitStep.classList.toggle('hidden', step !== 'visit');
