@@ -45,6 +45,13 @@
       text-align: center;
     }
 
+    .app-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+    }
+
     .app-name {
       margin: 0 0 8px;
       color: var(--text);
@@ -317,6 +324,11 @@
       margin-top: 12px;
     }
 
+    .route-overview-button {
+      width: 100%;
+      margin-bottom: 12px;
+    }
+
     .admin-summary {
       color: var(--muted);
       font-size: 14px;
@@ -442,7 +454,10 @@
 
     <header class="app-header">
       <p class="app-name">Světické kilometrobraní</p>
-      <button id="helpButton" class="text-button" type="button">Nápověda</button>
+      <nav class="app-nav" aria-label="Hlavní nabídka">
+        <a class="button-link text-button" href="mapa.html">Přehled tras</a>
+        <button id="helpButton" class="text-button" type="button">Nápověda</button>
+      </nav>
     </header>
 
     <section class="panel" aria-live="polite">
@@ -461,6 +476,7 @@
           <button id="scanLogoutButton" class="text-button" type="button">Odhlásit</button>
         </div>
         <p class="scanner-intro">Namiřte fotoaparát na QR kód umístěný na trase.</p>
+        <a class="button-link secondary route-overview-button" href="mapa.html">Přehled všech tras</a>
         <button id="startScanButton" class="primary" type="button">Naskenovat QR kód</button>
         <button id="scanStatsButton" class="secondary" type="button">Zobrazit statistiky</button>
         <button id="adminScanButton" class="secondary admin-entry hidden" type="button">Přepnout do admin režimu</button>

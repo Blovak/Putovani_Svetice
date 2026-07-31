@@ -68,6 +68,25 @@ body {
   gap: 7px;
 }
 
+.route-points a {
+  color: #1f2933;
+  text-decoration: none;
+}
+
+.route-points a:hover,
+.route-points a:focus-visible {
+  text-decoration: underline;
+}
+
+.route-swatch {
+  display: inline-block;
+  width: 30px;
+  height: 8px;
+  border: 1px solid rgba(0, 0, 0, .18);
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px #fff;
+}
+
 .point-label {
   color: var(--route-dark);
   font-size: 11px;
@@ -96,6 +115,43 @@ body {
 .location-button[disabled] {
   opacity: .65;
   cursor: wait;
+}
+
+.map-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.map-actions--single { grid-template-columns: 1fr; }
+
+.map-link[hidden] { display: none !important; }
+
+.map-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--route);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--route-dark);
+  font-size: 13px;
+  font-weight: 750;
+  text-align: center;
+  text-decoration: none;
+}
+
+.map-link--primary {
+  background: var(--route);
+  color: var(--button-text);
+}
+
+.map-link:focus-visible {
+  outline: 3px solid #1976d2;
+  outline-offset: 2px;
 }
 
 .location-status {
@@ -142,6 +198,13 @@ body {
   color: #b91c1c;
 }
 
+.route-popup-link {
+  display: inline-block;
+  margin-top: 7px;
+  color: #0d47a1;
+  font-weight: 700;
+}
+
 .leaflet-popup-content {
   margin: 12px 16px;
   font-size: 15px;
@@ -160,4 +223,5 @@ body {
   .route-info p { font-size: 13px; }
   .route-points { font-size: 12px; }
   .location-button { padding: 9px 10px; }
+  .map-link { font-size: 12px; }
 }

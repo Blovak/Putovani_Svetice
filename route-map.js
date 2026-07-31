@@ -4,13 +4,16 @@
   const params = new URLSearchParams(window.location.search);
   const routeKey = (params.get('route') || '').toLowerCase();
   const route = window.ROUTES && window.ROUTES[routeKey];
+  const routeKeys = ['cervena', 'cerna', 'modra', 'oranzova', 'zluta', 'hneda', 'zelena'];
+  const isOverview = !routeKey;
   const title = document.getElementById('routeTitle');
   const summary = document.getElementById('routeSummary');
   const pointsList = document.getElementById('routePoints');
   const locationButton = document.getElementById('locationButton');
   const locationStatus = document.getElementById('locationStatus');
+  const overviewLink = document.getElementById('overviewLink');
 
-  if (!route) {
+  if (!isOverview && !route) {
     title.textContent = 'Trasa nebyla nalezena';
     summary.className = 'error-card';
     summary.textContent = 'Odkaz na mapu neobsahuje platný název trasy.';
@@ -20,25 +23,59 @@
     return;
   }
 
-  document.documentElement.style.setProperty('--route', route.color);
-  document.documentElement.style.setProperty('--route-dark', route.darkColor);
-  document.documentElement.style.setProperty('--button-text', route.textColor || '#fff');
-  document.querySelector('meta[name="theme-color"]').content = route.color;
-  document.title = route.name + ' trasa – Světické kilometrobrání';
-  title.textContent = route.name + ' trasa';
-  summary.textContent = route.length.toLocaleString('cs-CZ', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' km';
-  document.getElementById('map').setAttribute('aria-label', 'Interaktivní mapa ' + route.name.toLowerCase() + ' trasy');
+  if (isOverview) {
+    document.documentElement.style.setProperty('--route', '#287346');
+    document.documentElement.style.setProperty('--route-dark', '#1f5d38');
+    document.documentElement.style.setProperty('--button-text', '#fff');
+    document.querySelector('meta[name="theme-color"]').content = '#287346';
+    document.title = 'Přehled všech tras – Světické kilometrobrání';
+    title.textContent = 'Přehled všech tras';
+    summary.textContent = 'Vyberte si trasu klepnutím na její barvu nebo název.';
+    overviewLink.hidden = true;
+    overviewLink.parentElement.classList.add('map-actions--single');
+    document.getElementById('map').setAttribute('aria-label', 'Interaktivní přehled všech tras');
 
-  route.points.forEach(function (point) {
-    const item = document.createElement('li');
-    const label = document.createElement('span');
-    const value = document.createElement('span');
-    label.className = 'point-label';
-    label.textContent = point.label;
-    value.textContent = point.title;
-    item.append(label, value);
-    pointsList.appendChild(item);
-  });
+    routeKeys.forEach(function (key) {
+      const itemRoute = window.ROUTES[key];
+      const item = document.createElement('li');
+      const colorLink = document.createElement('a');
+      const swatch = document.createElement('span');
+      const link = document.createElement('a');
+      swatch.className = 'route-swatch';
+      swatch.style.backgroundColor = itemRoute.color;
+      swatch.setAttribute('aria-hidden', 'true');
+      colorLink.href = 'mapa.html?route=' + key;
+      colorLink.setAttribute('aria-label', 'Zobrazit ' + itemRoute.name.toLowerCase() + ' trasu');
+      colorLink.appendChild(swatch);
+      link.href = 'mapa.html?route=' + key;
+      link.textContent = itemRoute.name + ' · ' + itemRoute.length.toLocaleString('cs-CZ', {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1
+      }) + ' km';
+      item.append(colorLink, link);
+      pointsList.appendChild(item);
+    });
+  } else {
+    document.documentElement.style.setProperty('--route', route.color);
+    document.documentElement.style.setProperty('--route-dark', route.darkColor);
+    document.documentElement.style.setProperty('--button-text', route.textColor || '#fff');
+    document.querySelector('meta[name="theme-color"]').content = route.color;
+    document.title = route.name + ' trasa – Světické kilometrobrání';
+    title.textContent = route.name + ' trasa';
+    summary.textContent = route.length.toLocaleString('cs-CZ', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' km';
+    document.getElementById('map').setAttribute('aria-label', 'Interaktivní mapa ' + route.name.toLowerCase() + ' trasy');
+
+    route.points.forEach(function (point) {
+      const item = document.createElement('li');
+      const label = document.createElement('span');
+      const value = document.createElement('span');
+      label.className = 'point-label';
+      label.textContent = point.label;
+      value.textContent = point.title;
+      item.append(label, value);
+      pointsList.appendChild(item);
+    });
+  }
 
   const map = L.map('map', { preferCanvas: true, zoomControl: false });
   L.control.zoom({ position: 'topright' }).addTo(map);
@@ -48,24 +85,64 @@
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   }).addTo(map);
 
-  L.polyline(route.coordinates, {
-    color: '#fff',
-    weight: 10,
-    opacity: .94,
-    lineJoin: 'round'
-  }).addTo(map);
-
-  const routeLine = L.polyline(route.coordinates, {
-    color: route.color,
-    weight: 6,
-    opacity: 1,
-    lineJoin: 'round'
-  }).addTo(map);
-
   function escapeHtml(value) {
     return String(value).replace(/[&<>'"]/g, function (character) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character];
     });
+  }
+
+  const visibleBounds = L.latLngBounds([]);
+
+  if (isOverview) {
+    routeKeys.forEach(function (key) {
+      const overviewRoute = window.ROUTES[key];
+      L.polyline(overviewRoute.coordinates, {
+        color: '#fff',
+        weight: 10,
+        opacity: .9,
+        lineJoin: 'round',
+        interactive: false
+      }).addTo(map);
+      visibleBounds.extend(L.latLngBounds(overviewRoute.coordinates));
+    });
+
+    routeKeys.forEach(function (key) {
+      const overviewRoute = window.ROUTES[key];
+      const line = L.polyline(overviewRoute.coordinates, {
+        color: overviewRoute.color,
+        weight: 6,
+        opacity: .96,
+        lineJoin: 'round'
+      }).addTo(map);
+      const distance = overviewRoute.length.toLocaleString('cs-CZ', {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1
+      });
+      line.bindPopup(
+        '<strong>' + escapeHtml(overviewRoute.name) + ' trasa · ' + distance + ' km</strong>' +
+        '<br><a class="route-popup-link" href="mapa.html?route=' + key + '">Zobrazit detail trasy</a>'
+      );
+      line.on('mouseover', function () {
+        line.setStyle({ weight: 9, opacity: 1 });
+        line.bringToFront();
+      });
+      line.on('mouseout', function () { line.setStyle({ weight: 6, opacity: .96 }); });
+    });
+  } else {
+    L.polyline(route.coordinates, {
+      color: '#fff',
+      weight: 10,
+      opacity: .94,
+      lineJoin: 'round'
+    }).addTo(map);
+
+    L.polyline(route.coordinates, {
+      color: route.color,
+      weight: 6,
+      opacity: 1,
+      lineJoin: 'round'
+    }).addTo(map);
+    visibleBounds.extend(L.latLngBounds(route.coordinates));
   }
 
   function markerIcon(point) {
@@ -80,21 +157,22 @@
     });
   }
 
-  route.points.forEach(function (point) {
-    L.marker(point.position, {
-      icon: markerIcon(point),
-      title: point.title,
-      keyboard: true,
-      zIndexOffset: point.label === 'QR' ? 500 : 0
-    }).addTo(map).bindPopup('<strong>' + escapeHtml(point.title) + '</strong>');
-  });
+  if (!isOverview) {
+    route.points.forEach(function (point) {
+      L.marker(point.position, {
+        icon: markerIcon(point),
+        title: point.title,
+        keyboard: true,
+        zIndexOffset: point.label === 'QR' ? 500 : 0
+      }).addTo(map).bindPopup('<strong>' + escapeHtml(point.title) + '</strong>');
+      visibleBounds.extend(point.position);
+    });
+  }
 
-  const visibleBounds = routeLine.getBounds();
-  route.points.forEach(function (point) { visibleBounds.extend(point.position); });
   map.fitBounds(visibleBounds, {
-    paddingTopLeft: [24, 225],
+    paddingTopLeft: [24, isOverview ? 340 : 260],
     paddingBottomRight: [24, 24],
-    maxZoom: 16
+    maxZoom: isOverview ? 13 : 16
   });
 
   let locationWatchId = null;
