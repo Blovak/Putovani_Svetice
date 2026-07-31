@@ -68,6 +68,27 @@
       letter-spacing: 0;
     }
 
+    .point-heading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin: 0 0 22px;
+    }
+
+    .point-heading h1 {
+      margin: 0;
+    }
+
+    .route-color {
+      width: 20px;
+      height: 20px;
+      flex: 0 0 20px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      box-shadow: 0 0 0 1px #8a928b;
+    }
+
     h2 {
       margin: 24px 0 12px;
       font-size: 18px;
@@ -330,7 +351,10 @@
     </header>
 
     <section class="panel" aria-live="polite">
-      <h1 id="pointText">Načítám místo...</h1>
+      <div class="point-heading">
+        <h1 id="pointText">Načítám místo...</h1>
+        <span id="routeColorIndicator" class="route-color hidden" role="img"></span>
+      </div>
 
       <div id="scanStep" class="hidden">
         <div class="account">
@@ -463,6 +487,15 @@
     const EMAIL_KEY = 'putovani:email';
     const QR_APP_ORIGIN = 'https://blovak.github.io';
     const QR_APP_PATH = '/Putovani_Svetice/index.html';
+    const ROUTE_COLORS = Object.freeze({
+      'červená': '#c62828',
+      'černá': '#212121',
+      'modrá': '#1565c0',
+      'oranžová': '#ef6c00',
+      'žlutá': '#fbc02d',
+      'hnědá': '#6d4c41',
+      'zelená': '#2e7d32'
+    });
 
     const state = {
       pointCode: '',
@@ -484,6 +517,7 @@
     async function initialize() {
       Object.assign(elements, {
         pointText: document.getElementById('pointText'),
+        routeColorIndicator: document.getElementById('routeColorIndicator'),
         scanStep: document.getElementById('scanStep'),
         pointLoadingStep: document.getElementById('pointLoadingStep'),
         scanAccountEmail: document.getElementById('scanAccountEmail'),
@@ -698,6 +732,7 @@
       state.pointCode = scanned.code;
       history.replaceState(null, '', window.location.pathname + scanned.search + window.location.hash);
       elements.pointText.textContent = 'Načítám místo...';
+      hideRouteColor();
       showStatus('');
       showStep('pointLoading');
       await stopScanner();
@@ -771,10 +806,11 @@
         const data = await response.json();
         if (data.status !== 'OK') throw new Error(data.error || 'POINT_NOT_FOUND');
         state.point = data;
-        elements.pointText.textContent = data.text || 'Bod trasy';
+        setPointHeading(data.text || 'Bod trasy', data.route);
         return true;
       } catch (error) {
         elements.pointText.textContent = 'Místo se nepodařilo načíst.';
+        hideRouteColor();
         showStatus(messageForError(error.message), true);
         return false;
       }
@@ -815,6 +851,7 @@
 
     function showSessionRecovery() {
       elements.pointText.textContent = 'Obnovení přihlášení';
+      hideRouteColor();
       showStep('sessionRecovery');
       showStatus('Přihlášení zůstalo uložené. Zkontrolujte připojení a zkuste obnovení znovu.', true);
     }
@@ -915,6 +952,7 @@
     async function openStatsBeforeScan() {
       await stopScanner();
       elements.pointText.textContent = 'Statistiky';
+      hideRouteColor();
       elements.resultMessage.textContent = '';
       elements.mapLink.classList.add('hidden');
       showStatus('');
@@ -989,6 +1027,7 @@
         state.adminReturnStep = 'visit';
       }
       elements.pointText.textContent = 'Administrace';
+      hideRouteColor();
       elements.adminEmail.textContent = state.email;
       elements.adminContent.classList.add('hidden');
       elements.adminTableHead.replaceChildren();
@@ -1135,6 +1174,7 @@
       elements.scanAccountEmail.textContent = state.email;
       updateAdminControls();
       if (state.pointCode) {
+        setHeadingForStep('visit');
         showStep('visit');
       } else {
         setHeadingForStep('scan');
@@ -1162,11 +1202,32 @@
     function setHeadingForStep(step) {
       if (step === 'scan') {
         elements.pointText.textContent = 'Naskenujte QR kód trasy';
+        hideRouteColor();
       } else if (state.point && state.point.text) {
-        elements.pointText.textContent = state.point.text;
+        setPointHeading(state.point.text, state.point.route);
       } else {
         elements.pointText.textContent = 'Přihlášení';
+        hideRouteColor();
       }
+    }
+
+    function setPointHeading(text, route) {
+      elements.pointText.textContent = text;
+      const routeName = String(route || '').trim().toLowerCase();
+      const color = ROUTE_COLORS[routeName];
+      if (!color) {
+        hideRouteColor();
+        return;
+      }
+      elements.routeColorIndicator.style.backgroundColor = color;
+      elements.routeColorIndicator.setAttribute('aria-label', 'Barva trasy: ' + route);
+      elements.routeColorIndicator.classList.remove('hidden');
+    }
+
+    function hideRouteColor() {
+      elements.routeColorIndicator.classList.add('hidden');
+      elements.routeColorIndicator.style.backgroundColor = '';
+      elements.routeColorIndicator.removeAttribute('aria-label');
     }
 
     function showStep(step) {
