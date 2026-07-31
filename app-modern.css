@@ -66,8 +66,14 @@ main {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  margin: 14px 4px 18px;
+  margin: 14px 0 18px;
+  padding: 7px 8px 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .78);
+  box-shadow: var(--shadow-sm);
   text-align: left;
+  backdrop-filter: blur(14px);
 }
 
 .app-name {
@@ -83,11 +89,10 @@ main {
   flex: 0 0 auto;
   gap: 6px;
   padding: 4px;
-  border: 1px solid var(--border);
+  border: 0;
   border-radius: 14px;
-  background: rgba(255, 255, 255, .68);
-  box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(14px);
+  background: transparent;
+  box-shadow: none;
 }
 
 .app-nav .text-button {
@@ -435,12 +440,16 @@ body.route-themed .logo {
   box-shadow: 0 24px 70px rgba(0, 0, 0, .2);
 }
 
-body.route-themed .app-header { color: var(--route-text); }
-body.route-themed .app-name { color: var(--route-text); }
+body.route-themed .app-header {
+  border-color: var(--border);
+  background: rgba(255, 255, 255, .9);
+  color: var(--text);
+}
+
+body.route-themed .app-name { color: var(--text); }
 
 body.route-themed .app-nav {
-  border-color: var(--route-border);
-  background: var(--route-card);
+  background: transparent;
 }
 
 body.route-themed .panel,
@@ -470,6 +479,13 @@ body.route-themed .text-button {
   background: var(--route-card);
   color: var(--route-text);
 }
+
+body.route-themed .app-nav .text-button {
+  background: transparent;
+  color: var(--primary);
+}
+
+body.route-themed .app-nav .text-button:hover { background: var(--primary-soft); }
 
 body.route-themed .account,
 body.route-themed .active-route-notice,
