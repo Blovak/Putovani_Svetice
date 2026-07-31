@@ -196,6 +196,36 @@
       text-align: center;
     }
 
+    .admin-entry {
+      width: 100%;
+      margin-top: 12px;
+    }
+
+    .admin-summary {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .table-scroll {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .admin-table {
+      min-width: 680px;
+    }
+
+    .admin-table th,
+    .admin-table td {
+      vertical-align: top;
+      white-space: nowrap;
+    }
+
+    .admin-table td:nth-child(1),
+    .admin-table td:nth-child(3) {
+      white-space: normal;
+    }
+
     .status {
       min-height: 22px;
       margin: 14px 0 0;
@@ -337,6 +367,7 @@
           <button id="logoutButton" class="text-button" type="button">Odhlásit</button>
         </div>
         <button id="visitButton" class="primary" type="button">Potvrdit návštěvu místa</button>
+        <button id="adminEntryButton" class="secondary admin-entry hidden" type="button">Přepnout do admin režimu</button>
       </div>
 
       <div id="resultStep" class="hidden">
@@ -344,6 +375,7 @@
         <div class="actions">
           <a id="mapLink" class="button-link secondary hidden" target="_blank" rel="noopener noreferrer">Otevřít mapu</a>
           <button id="statsButton" class="secondary" type="button">Zobrazit statistiky</button>
+          <button id="adminResultButton" class="secondary hidden" type="button">Přepnout do admin režimu</button>
         </div>
         <div id="statsSection" class="hidden">
           <h2>Statistiky</h2>
@@ -354,6 +386,28 @@
             <tbody id="statsBody"></tbody>
           </table>
         </div>
+      </div>
+
+      <div id="adminStep" class="hidden">
+        <div class="account">
+          <span id="adminEmail" class="account-email"></span>
+          <button id="exitAdminButton" class="text-button" type="button">Zpět do aplikace</button>
+        </div>
+        <div class="actions">
+          <button id="adminUsersButton" class="secondary" type="button">Seznam uživatelů</button>
+          <button id="adminLogButton" class="secondary" type="button">Výpis logu</button>
+        </div>
+        <section id="adminContent" class="hidden">
+          <h2 id="adminContentTitle"></h2>
+          <p id="adminSummary" class="admin-summary"></p>
+          <div class="table-scroll">
+            <table id="adminTable" class="admin-table">
+              <thead id="adminTableHead"></thead>
+              <tbody id="adminTableBody"></tbody>
+            </table>
+          </div>
+          <button id="adminLoadMoreButton" class="secondary admin-entry hidden" type="button">Načíst další záznamy</button>
+        </section>
       </div>
 
       <p id="status" class="status"></p>
@@ -385,7 +439,10 @@
       sessionToken: localStorage.getItem(SESSION_KEY) || '',
       scanner: null,
       scanInProgress: false,
-      acceptingScan: false
+      acceptingScan: false,
+      isAdmin: false,
+      adminReturnStep: 'visit',
+      adminLogOffset: 0
     };
 
     const elements = {};
@@ -416,14 +473,28 @@
         accountEmail: document.getElementById('accountEmail'),
         logoutButton: document.getElementById('logoutButton'),
         visitButton: document.getElementById('visitButton'),
+        adminEntryButton: document.getElementById('adminEntryButton'),
         resultMessage: document.getElementById('resultMessage'),
         mapLink: document.getElementById('mapLink'),
         statsButton: document.getElementById('statsButton'),
+        adminResultButton: document.getElementById('adminResultButton'),
         statsSection: document.getElementById('statsSection'),
         totalDistance: document.getElementById('totalDistance'),
         emptyStats: document.getElementById('emptyStats'),
         statsTable: document.getElementById('statsTable'),
         statsBody: document.getElementById('statsBody'),
+        adminStep: document.getElementById('adminStep'),
+        adminEmail: document.getElementById('adminEmail'),
+        exitAdminButton: document.getElementById('exitAdminButton'),
+        adminUsersButton: document.getElementById('adminUsersButton'),
+        adminLogButton: document.getElementById('adminLogButton'),
+        adminContent: document.getElementById('adminContent'),
+        adminContentTitle: document.getElementById('adminContentTitle'),
+        adminSummary: document.getElementById('adminSummary'),
+        adminTable: document.getElementById('adminTable'),
+        adminTableHead: document.getElementById('adminTableHead'),
+        adminTableBody: document.getElementById('adminTableBody'),
+        adminLoadMoreButton: document.getElementById('adminLoadMoreButton'),
         status: document.getElementById('status'),
         helpButton: document.getElementById('helpButton'),
         helpDialog: document.getElementById('helpDialog'),
@@ -473,6 +544,12 @@
       elements.visitButton.addEventListener('click', recordVisit);
       elements.statsButton.addEventListener('click', loadStats);
       elements.logoutButton.addEventListener('click', logout);
+      elements.adminEntryButton.addEventListener('click', enterAdminMode);
+      elements.adminResultButton.addEventListener('click', enterAdminMode);
+      elements.exitAdminButton.addEventListener('click', exitAdminMode);
+      elements.adminUsersButton.addEventListener('click', loadAdminUsers);
+      elements.adminLogButton.addEventListener('click', function () { loadAdminLog(true); });
+      elements.adminLoadMoreButton.addEventListener('click', function () { loadAdminLog(false); });
       elements.startScanButton.addEventListener('click', startScanner);
       elements.stopScanButton.addEventListener('click', stopScanner);
       elements.helpButton.addEventListener('click', showHelp);
@@ -630,6 +707,7 @@
           return false;
         }
         state.email = data.email;
+        applyAccess(data);
         localStorage.setItem(EMAIL_KEY, state.email);
         showAuthenticated();
         return true;
@@ -671,6 +749,7 @@
         if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
         state.sessionToken = data.sessionToken;
         state.email = data.email;
+        applyAccess(data);
         localStorage.setItem(SESSION_KEY, state.sessionToken);
         localStorage.setItem(EMAIL_KEY, state.email);
         showAuthenticated();
@@ -692,8 +771,7 @@
           code: state.pointCode
         });
         if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
-        elements.visitStep.classList.add('hidden');
-        elements.resultStep.classList.remove('hidden');
+        showStep('result');
         elements.resultMessage.textContent = 'Návštěva místa byla zaznamenána.';
         const mapUrl = data.mapUrl || (state.point && state.point.mapUrl) || '';
         if (/^https:\/\//i.test(mapUrl)) {
@@ -745,6 +823,124 @@
       });
     }
 
+    function enterAdminMode() {
+      if (!state.isAdmin) return;
+      state.adminReturnStep = elements.resultStep.classList.contains('hidden') ? 'visit' : 'result';
+      elements.pointText.textContent = 'Administrace';
+      elements.adminEmail.textContent = state.email;
+      elements.adminContent.classList.add('hidden');
+      elements.adminTableHead.replaceChildren();
+      elements.adminTableBody.replaceChildren();
+      elements.adminLoadMoreButton.classList.add('hidden');
+      showStatus('');
+      showStep('admin');
+    }
+
+    function exitAdminMode() {
+      elements.pointText.textContent = state.point && state.point.text ? state.point.text : 'Bod trasy';
+      showStatus('');
+      showStep(state.adminReturnStep);
+    }
+
+    async function loadAdminUsers() {
+      setBusy(elements.adminUsersButton, true, 'Načítám...');
+      showStatus('');
+      try {
+        const data = await apiPost({ action: 'adminUsers', sessionToken: state.sessionToken });
+        if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
+        const users = data.users || [];
+        renderAdminTable(
+          ['E-mail', 'Stav', 'Role', 'Registrace', 'Ověření', 'Poslední přihlášení'],
+          users.map(function (user) {
+            return [user.email, user.status, user.role, user.createdAt, user.verifiedAt, user.lastLoginAt];
+          }),
+          false
+        );
+        elements.adminContentTitle.textContent = 'Seznam uživatelů';
+        elements.adminSummary.textContent = 'Počet uživatelů: ' + Number(data.total || users.length);
+        elements.adminContent.classList.remove('hidden');
+        elements.adminLoadMoreButton.classList.add('hidden');
+      } catch (error) {
+        handleAdminError(error);
+      } finally {
+        setBusy(elements.adminUsersButton, false, 'Seznam uživatelů');
+      }
+    }
+
+    async function loadAdminLog(reset) {
+      if (reset) {
+        state.adminLogOffset = 0;
+        elements.adminTableHead.replaceChildren();
+        elements.adminTableBody.replaceChildren();
+      }
+      setBusy(reset ? elements.adminLogButton : elements.adminLoadMoreButton, true, 'Načítám...');
+      showStatus('');
+      try {
+        const data = await apiPost({
+          action: 'adminLog',
+          sessionToken: state.sessionToken,
+          offset: state.adminLogOffset,
+          limit: 100
+        });
+        if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
+        const entries = data.entries || [];
+        renderAdminTable(
+          ['Datum', 'Kód', 'Popis', 'Uživatel', 'Barva'],
+          entries.map(function (entry) {
+            return [entry.date, entry.code, entry.description, entry.user, entry.color];
+          }),
+          !reset
+        );
+        state.adminLogOffset = Number(data.nextOffset) || state.adminLogOffset + entries.length;
+        elements.adminContentTitle.textContent = 'Výpis logu';
+        elements.adminSummary.textContent = 'Zobrazeno ' + state.adminLogOffset + ' z ' + Number(data.total || 0) + ' záznamů (nejnovější první).';
+        elements.adminContent.classList.remove('hidden');
+        elements.adminLoadMoreButton.classList.toggle('hidden', !data.hasMore);
+      } catch (error) {
+        handleAdminError(error);
+      } finally {
+        setBusy(elements.adminLogButton, false, 'Výpis logu');
+        setBusy(elements.adminLoadMoreButton, false, 'Načíst další záznamy');
+      }
+    }
+
+    function renderAdminTable(headers, rows, append) {
+      if (!append) {
+        elements.adminTableHead.replaceChildren();
+        elements.adminTableBody.replaceChildren();
+        const headerRow = document.createElement('tr');
+        headers.forEach(function (header) {
+          const cell = document.createElement('th');
+          cell.scope = 'col';
+          cell.textContent = header;
+          headerRow.appendChild(cell);
+        });
+        elements.adminTableHead.appendChild(headerRow);
+      }
+      rows.forEach(function (values) {
+        const row = document.createElement('tr');
+        values.forEach(function (value) {
+          const cell = document.createElement('td');
+          cell.textContent = value || '';
+          row.appendChild(cell);
+        });
+        elements.adminTableBody.appendChild(row);
+      });
+    }
+
+    function handleAdminError(error) {
+      if (error.message === 'UNAUTHORIZED') {
+        clearSession();
+        elements.pointText.textContent = state.point && state.point.text ? state.point.text : 'Bod trasy';
+        showStep('email');
+      } else if (error.message === 'FORBIDDEN') {
+        state.isAdmin = false;
+        updateAdminControls();
+        exitAdminMode();
+      }
+      showStatus(messageForError(error.message), true);
+    }
+
     async function logout() {
       const oldToken = state.sessionToken;
       clearSession();
@@ -757,7 +953,19 @@
 
     function showAuthenticated() {
       elements.accountEmail.textContent = state.email;
+      updateAdminControls();
       showStep('visit');
+    }
+
+    function applyAccess(data) {
+      state.isAdmin = Boolean(data && data.isAdmin);
+      updateAdminControls();
+    }
+
+    function updateAdminControls() {
+      if (!elements.adminEntryButton) return;
+      elements.adminEntryButton.classList.toggle('hidden', !state.isAdmin);
+      elements.adminResultButton.classList.toggle('hidden', !state.isAdmin);
     }
 
     function showStep(step) {
@@ -765,12 +973,15 @@
       elements.emailStep.classList.toggle('hidden', step !== 'email');
       elements.codeStep.classList.toggle('hidden', step !== 'code');
       elements.visitStep.classList.toggle('hidden', step !== 'visit');
-      elements.resultStep.classList.add('hidden');
-      elements.statsSection.classList.add('hidden');
+      elements.resultStep.classList.toggle('hidden', step !== 'result');
+      elements.adminStep.classList.toggle('hidden', step !== 'admin');
+      if (step !== 'result') elements.statsSection.classList.add('hidden');
     }
 
     function clearSession() {
       state.sessionToken = '';
+      state.isAdmin = false;
+      updateAdminControls();
       localStorage.removeItem(SESSION_KEY);
     }
 
@@ -807,6 +1018,7 @@
         CODE_EXPIRED: 'Platnost kódu vypršela. Pošlete si nový kód.',
         TOO_MANY_ATTEMPTS: 'Kód byl zadán příliš mnohokrát. Pošlete si nový kód.',
         UNAUTHORIZED: 'Přihlášení vypršelo. Ověřte prosím e-mail znovu.',
+        FORBIDDEN: 'Pro tuto operaci nemáte administrátorské oprávnění.',
         INVALID_POINT: 'Tento bod trasy není platný.',
         POINT_NOT_FOUND: 'Tento bod trasy nebyl nalezen.',
         MISSING_CODE: 'V odkazu chybí kód místa.',
