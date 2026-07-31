@@ -373,6 +373,7 @@
           <button id="logoutButton" class="text-button" type="button">Odhlásit</button>
         </div>
         <button id="visitButton" class="primary" type="button">Potvrdit návštěvu místa</button>
+        <button id="scanVisitButton" class="secondary" type="button">Naskenovat jiný QR kód</button>
         <button id="adminEntryButton" class="secondary admin-entry hidden" type="button">Přepnout do admin režimu</button>
       </div>
 
@@ -381,6 +382,7 @@
         <div class="actions">
           <a id="mapLink" class="button-link secondary hidden" target="_blank" rel="noopener noreferrer">Otevřít mapu</a>
           <button id="statsButton" class="secondary" type="button">Zobrazit statistiky</button>
+          <button id="scanResultButton" class="secondary" type="button">Naskenovat další QR kód</button>
           <button id="adminResultButton" class="secondary hidden" type="button">Přepnout do admin režimu</button>
         </div>
         <div id="statsSection" class="hidden">
@@ -495,10 +497,12 @@
         accountEmail: document.getElementById('accountEmail'),
         logoutButton: document.getElementById('logoutButton'),
         visitButton: document.getElementById('visitButton'),
+        scanVisitButton: document.getElementById('scanVisitButton'),
         adminEntryButton: document.getElementById('adminEntryButton'),
         resultMessage: document.getElementById('resultMessage'),
         mapLink: document.getElementById('mapLink'),
         statsButton: document.getElementById('statsButton'),
+        scanResultButton: document.getElementById('scanResultButton'),
         adminResultButton: document.getElementById('adminResultButton'),
         statsSection: document.getElementById('statsSection'),
         totalDistance: document.getElementById('totalDistance'),
@@ -572,7 +576,9 @@
 
       elements.resendButton.addEventListener('click', function () { requestCode(true); });
       elements.visitButton.addEventListener('click', recordVisit);
+      elements.scanVisitButton.addEventListener('click', openScanner);
       elements.statsButton.addEventListener('click', loadStats);
+      elements.scanResultButton.addEventListener('click', openScanner);
       elements.logoutButton.addEventListener('click', logout);
       elements.scanLogoutButton.addEventListener('click', logout);
       elements.adminEntryButton.addEventListener('click', enterAdminMode);
@@ -642,6 +648,16 @@
         await stopScanner();
         showStatus(cameraErrorMessage(error), true);
       }
+    }
+
+    function openScanner() {
+      state.pointCode = '';
+      state.point = null;
+      history.replaceState(null, '', window.location.pathname + window.location.hash);
+      setHeadingForStep('scan');
+      showStatus('');
+      showStep('scan');
+      startScanner();
     }
 
     async function handleScannedCode(decodedText) {

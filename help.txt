@@ -34,6 +34,8 @@ Postupujte podle značení vybrané trasy:
 
 Po úspěšném zápisu se zobrazí zpráva „Návštěva místa byla zaznamenána.“
 
+Tlačítko pro naskenování dalšího QR kódu je dostupné také při zobrazení bodu a na obrazovce se statistikami. Nemusíte proto aplikaci zavírat ani znovu otevírat bez kódu.
+
 4. MAPA TRASY
 
 Pokud je u bodu k dispozici mapa, po potvrzení návštěvy se zobrazí volba „Otevřít mapu“. Mapa se otevře v nové kartě prohlížeče.
