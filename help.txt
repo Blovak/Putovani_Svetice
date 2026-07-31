@@ -40,9 +40,11 @@ Pokud je u bodu k dispozici mapa, po potvrzení návštěvy se zobrazí volba �
 
 5. STATISTIKY
 
-Po potvrzení návštěvy klepněte na „Zobrazit statistiky“. Uvidíte přehled svých tras, jejich vzdálenosti a informaci, zda byly dokončeny. Zobrazí se také celková vzdálenost, kterou společně dokončili všichni účastníci.
+Po potvrzení návštěvy klepněte na „Zobrazit statistiky“. V části „Dokončené trasy“ uvidíte délku každé trasy, kolikrát jste ji celou prošli a kolik kilometrů jste na ní celkem dokončili.
 
-Nově dokončená trasa se může ve statistikách projevit až po několika sekundách. Pokud ji zatím nevidíte, chvíli počkejte a statistiky načtěte znovu.
+V části „Rozpracované trasy“ uvidíte dosud nedokončené průchody, dosažený počet bodů, poslední navštívený bod a čas poslední aktivity. Trasa se započítá jako dokončená po návštěvě jejích bodů ve správném pořadí od startu přes kontrolní bod až do cíle.
+
+Nad přehledy se zobrazuje vaše celková vzdálenost na dokončených trasách a společná vzdálenost všech účastníků.
 
 6. ODHLÁŠENÍ
 
