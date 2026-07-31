@@ -399,6 +399,7 @@
           <span id="adminEmail" class="account-email"></span>
           <button id="exitAdminButton" class="text-button" type="button">Zpět do aplikace</button>
         </div>
+        <p id="adminTotalDistance" class="total-distance" aria-live="polite"></p>
         <div class="actions">
           <button id="adminUsersButton" class="secondary" type="button">Seznam uživatelů</button>
           <button id="adminLogButton" class="secondary" type="button">Výpis logu</button>
@@ -494,6 +495,7 @@
         statsBody: document.getElementById('statsBody'),
         adminStep: document.getElementById('adminStep'),
         adminEmail: document.getElementById('adminEmail'),
+        adminTotalDistance: document.getElementById('adminTotalDistance'),
         exitAdminButton: document.getElementById('exitAdminButton'),
         adminUsersButton: document.getElementById('adminUsersButton'),
         adminLogButton: document.getElementById('adminLogButton'),
@@ -821,9 +823,7 @@
     function renderStats(stats, totalDistanceKm) {
       elements.statsBody.replaceChildren();
       elements.statsSection.classList.remove('hidden');
-      const distance = Number(totalDistanceKm) || 0;
-      elements.totalDistance.textContent = 'Všichni účastníci zatím společně ušli ' +
-        new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 2 }).format(distance) + ' km.';
+      elements.totalDistance.textContent = totalDistanceText(totalDistanceKm);
       elements.emptyStats.classList.toggle('hidden', stats.length > 0);
       elements.statsTable.classList.toggle('hidden', stats.length === 0);
       stats.forEach(function (item) {
@@ -855,6 +855,25 @@
       elements.adminLoadMoreButton.classList.add('hidden');
       showStatus('');
       showStep('admin');
+      loadAdminTotalDistance();
+    }
+
+    async function loadAdminTotalDistance() {
+      elements.adminTotalDistance.textContent = 'Načítám celkovou vzdálenost...';
+      try {
+        const data = await apiPost({ action: 'stats', sessionToken: state.sessionToken });
+        if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
+        elements.adminTotalDistance.textContent = totalDistanceText(data.totalDistanceKm);
+      } catch (error) {
+        elements.adminTotalDistance.textContent = 'Celkovou vzdálenost se nepodařilo načíst.';
+        if (error.message === 'UNAUTHORIZED') handleAdminError(error);
+      }
+    }
+
+    function totalDistanceText(totalDistanceKm) {
+      const distance = Number(totalDistanceKm) || 0;
+      return 'Všichni účastníci zatím společně ušli ' +
+        new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 2 }).format(distance) + ' km.';
     }
 
     function exitAdminMode() {
