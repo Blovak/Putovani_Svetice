@@ -412,6 +412,49 @@
       text-align: center;
     }
 
+    .celebration-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: rgba(4, 8, 20, .88);
+    }
+
+    .celebration-card {
+      width: min(100%, 390px);
+      max-height: calc(100vh - 40px);
+      overflow: hidden;
+      border: 2px solid rgba(255, 255, 255, .85);
+      border-radius: 12px;
+      background: #07132d;
+      color: #fff;
+      text-align: center;
+      box-shadow: 0 18px 55px rgba(0, 0, 0, .55);
+    }
+
+    .celebration-card h2 {
+      margin: 0;
+      padding: 18px 16px;
+      font-size: 28px;
+    }
+
+    .celebration-card img {
+      display: block;
+      width: 100%;
+      max-height: 60vh;
+      object-fit: cover;
+      object-position: center;
+    }
+
+    .celebration-close {
+      width: calc(100% - 32px);
+      margin: 14px 16px 18px;
+      background: #fff;
+      color: #07132d;
+    }
+
     .hidden { display: none !important; }
 
     table {
@@ -569,6 +612,14 @@
     </section>
   </main>
 
+  <div id="celebrationOverlay" class="celebration-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="celebrationTitle">
+    <div class="celebration-card">
+      <h2 id="celebrationTitle">Trasa dokončena!</h2>
+      <img id="celebrationImage" alt="Animovaný ohňostroj na oslavu dokončení trasy">
+      <button id="celebrationCloseButton" class="celebration-close" type="button">Pokračovat</button>
+    </div>
+  </div>
+
   <dialog id="helpDialog" class="help-dialog" aria-labelledby="helpTitle">
     <div class="help-dialog-content">
       <div class="help-dialog-header">
@@ -586,6 +637,7 @@
     const EMAIL_KEY = 'putovani:email';
     const QR_APP_ORIGIN = 'https://blovak.github.io';
     const QR_APP_PATH = '/Putovani_Svetice/index.html';
+    const FIREWORKS_GIF = 'fireworks.gif';
     const ROUTE_COLORS = Object.freeze({
       'červená': '#c62828',
       'černá': '#212121',
@@ -619,6 +671,8 @@
     };
 
     const elements = {};
+    let celebrationAudioContext = null;
+    let celebrationTimer = 0;
 
     window.addEventListener('DOMContentLoaded', initialize);
 
@@ -691,7 +745,10 @@
         helpButton: document.getElementById('helpButton'),
         helpDialog: document.getElementById('helpDialog'),
         helpCloseButton: document.getElementById('helpCloseButton'),
-        helpText: document.getElementById('helpText')
+        helpText: document.getElementById('helpText'),
+        celebrationOverlay: document.getElementById('celebrationOverlay'),
+        celebrationImage: document.getElementById('celebrationImage'),
+        celebrationCloseButton: document.getElementById('celebrationCloseButton')
       });
 
       bindEvents();
@@ -764,6 +821,15 @@
       });
       elements.helpDialog.addEventListener('click', function (event) {
         if (event.target === elements.helpDialog) elements.helpDialog.close();
+      });
+      elements.celebrationCloseButton.addEventListener('click', hideCelebration);
+      elements.celebrationOverlay.addEventListener('click', function (event) {
+        if (event.target === elements.celebrationOverlay) hideCelebration();
+      });
+      window.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && !elements.celebrationOverlay.classList.contains('hidden')) {
+          hideCelebration();
+        }
       });
       window.addEventListener('pagehide', function () { stopScanner(); });
     }
@@ -974,6 +1040,74 @@
       });
     }
 
+    function prepareCelebrationAudio() {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      try {
+        if (!celebrationAudioContext || celebrationAudioContext.state === 'closed') {
+          celebrationAudioContext = new AudioContextClass();
+        }
+        if (celebrationAudioContext.state === 'suspended') {
+          celebrationAudioContext.resume().catch(function () {});
+        }
+      } catch (_) {
+        celebrationAudioContext = null;
+      }
+    }
+
+    function playFanfare() {
+      const context = celebrationAudioContext;
+      if (!context || context.state === 'closed') return;
+      if (context.state === 'suspended') context.resume().catch(function () {});
+
+      const start = context.currentTime + .04;
+      const phrases = [
+        { at: 0, duration: .24, notes: [261.63, 392, 523.25] },
+        { at: .28, duration: .24, notes: [329.63, 493.88, 659.25] },
+        { at: .56, duration: .30, notes: [392, 587.33, 783.99] },
+        { at: .92, duration: 1.05, notes: [523.25, 659.25, 783.99, 1046.50] }
+      ];
+
+      phrases.forEach(function (phrase, phraseIndex) {
+        phrase.notes.forEach(function (frequency, noteIndex) {
+          const oscillator = context.createOscillator();
+          const gain = context.createGain();
+          const noteStart = start + phrase.at;
+          const noteEnd = noteStart + phrase.duration;
+          oscillator.type = phraseIndex === phrases.length - 1 ? 'triangle' : 'square';
+          oscillator.frequency.setValueAtTime(frequency, noteStart);
+          oscillator.detune.setValueAtTime((noteIndex - 1) * 2, noteStart);
+          gain.gain.setValueAtTime(.0001, noteStart);
+          gain.gain.exponentialRampToValueAtTime(.025, noteStart + .025);
+          gain.gain.setValueAtTime(.025, noteStart + phrase.duration * .55);
+          gain.gain.exponentialRampToValueAtTime(.0001, noteEnd);
+          oscillator.connect(gain);
+          gain.connect(context.destination);
+          oscillator.start(noteStart);
+          oscillator.stop(noteEnd + .02);
+        });
+      });
+    }
+
+    function showCelebration() {
+      window.clearTimeout(celebrationTimer);
+      elements.celebrationImage.removeAttribute('src');
+      elements.celebrationOverlay.classList.remove('hidden');
+      window.requestAnimationFrame(function () {
+        elements.celebrationImage.src = FIREWORKS_GIF;
+      });
+      elements.celebrationCloseButton.focus();
+      celebrationTimer = window.setTimeout(hideCelebration, 7000);
+    }
+
+    function hideCelebration() {
+      window.clearTimeout(celebrationTimer);
+      celebrationTimer = 0;
+      elements.celebrationOverlay.classList.add('hidden');
+      elements.celebrationImage.removeAttribute('src');
+      if (!elements.scanResultButton.classList.contains('hidden')) elements.scanResultButton.focus();
+    }
+
     async function requestCode(isResend) {
       setBusy(elements.sendCodeButton, true, 'Odesílám...');
       setBusy(elements.resendButton, true, 'Odesílám...');
@@ -1019,6 +1153,7 @@
     }
 
     async function recordVisit() {
+      prepareCelebrationAudio();
       setBusy(elements.visitButton, true, 'Zapisuji...');
       showStatus('');
       try {
@@ -1037,6 +1172,10 @@
           state.activeRouteLastPoint = data.routeIncomplete ? String(data.lastPoint || '') : '';
         }
         showStep('result');
+        if (data.routeCompleted) {
+          playFanfare();
+          showCelebration();
+        }
         elements.resultMessage.textContent = 'Návštěva místa byla zaznamenána.';
         const mapUrl = data.mapUrl || (state.point && state.point.mapUrl) || '';
         if (/^https:\/\//i.test(mapUrl)) {
