@@ -511,6 +511,23 @@ body.route-themed button:focus-visible,
 body.route-themed .button-link:focus-visible,
 body.route-themed input:focus { box-shadow: 0 0 0 4px var(--route-border); }
 
+body.route-themed .help-dialog {
+  border-color: rgba(255, 255, 255, .74);
+  background: rgba(255, 255, 255, .97);
+  color: var(--text);
+  box-shadow: 0 28px 90px rgba(12, 30, 19, .28);
+}
+
+body.route-themed .help-dialog h2 { color: var(--text); }
+body.route-themed .help-text { color: #344139; }
+
+body.route-themed .help-close {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+body.route-themed .help-close:focus-visible { box-shadow: 0 0 0 4px var(--focus); }
+
 @media (min-width: 760px) {
   main { width: min(calc(100% - 64px), 660px); margin-top: 42px; }
   .panel { padding: 38px; }
