@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <title>Mapa trasy – Světické kilometrobrání</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="route-map.css">
+</head>
+<body>
+  <aside class="route-info" aria-label="Informace o trase">
+    <h1 id="routeTitle">Načítám trasu…</h1>
+    <p id="routeSummary" class="route-summary"></p>
+    <ol id="routePoints" class="route-points"></ol>
+    <button id="locationButton" class="location-button" type="button">Ukázat moji polohu</button>
+    <p id="locationStatus" class="location-status" aria-live="polite"></p>
+  </aside>
+
+  <main id="map" aria-label="Interaktivní mapa trasy"></main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="routes-data.js"></script>
+  <script src="route-map.js"></script>
+</body>
+</html>
