@@ -12,6 +12,9 @@
   const locationButton = document.getElementById('locationButton');
   const locationStatus = document.getElementById('locationStatus');
   const overviewLink = document.getElementById('overviewLink');
+  const routeInfo = document.querySelector('.route-info');
+
+  routeInfo.classList.add(isOverview ? 'route-info--overview' : 'route-info--detail');
 
   if (!isOverview && !route) {
     title.textContent = 'Trasa nebyla nalezena';
@@ -172,7 +175,7 @@
   }
 
   map.fitBounds(visibleBounds, {
-    paddingTopLeft: [24, isOverview ? 340 : 260],
+    paddingTopLeft: [20, isOverview ? 220 : 190],
     paddingBottomRight: [24, 24],
     maxZoom: isOverview ? 13 : 16
   });

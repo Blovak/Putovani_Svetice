@@ -30,12 +30,12 @@ body {
   z-index: 1000;
   top: max(14px, env(safe-area-inset-top));
   left: max(14px, env(safe-area-inset-left));
-  width: min(380px, calc(100% - 82px));
+  width: min(350px, calc(100% - 82px));
   max-height: calc(100% - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   overflow: auto;
-  padding: 19px;
+  padding: 14px;
   border: 1px solid rgba(255, 255, 255, .8);
-  border-radius: 22px;
+  border-radius: 18px;
   background: var(--surface);
   box-shadow: 0 22px 60px rgba(15, 32, 21, .2);
   scrollbar-width: thin;
@@ -43,9 +43,9 @@ body {
 }
 
 .route-info h1 {
-  margin: 0 0 6px;
+  margin: 0 0 4px;
   color: var(--route-dark);
-  font-size: 25px;
+  font-size: 21px;
   font-weight: 830;
   line-height: 1.1;
   letter-spacing: -.035em;
@@ -53,28 +53,45 @@ body {
 
 .route-info p {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.45;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .route-summary { font-weight: 750; }
 
 .route-points {
   display: grid;
-  gap: 6px;
-  margin: 14px 0 0;
+  gap: 3px;
+  margin: 9px 0 0;
   padding: 0;
   list-style: none;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .route-points li {
   display: grid;
-  grid-template-columns: 44px 1fr;
+  grid-template-columns: 38px 1fr;
   align-items: baseline;
-  gap: 9px;
-  padding: 5px 6px;
-  border-radius: 10px;
+  gap: 6px;
+  padding: 3px 4px;
+  border-radius: 8px;
+}
+
+.route-info--overview .route-points {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 7px;
+}
+
+.route-info--overview .route-points li {
+  grid-template-columns: 25px minmax(0, 1fr);
+  gap: 4px;
+}
+
+.route-info--overview .route-points li > a:last-child {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .route-points .route-overview-item {
@@ -98,11 +115,11 @@ body {
 
 .route-swatch {
   display: inline-block;
-  width: 30px;
-  height: 10px;
+  width: 22px;
+  height: 8px;
   border: 1px solid rgba(0, 0, 0, .18);
   border-radius: 999px;
-  box-shadow: 0 0 0 3px #fff, 0 3px 7px rgba(0, 0, 0, .15);
+  box-shadow: 0 0 0 2px #fff, 0 2px 5px rgba(0, 0, 0, .15);
 }
 
 .point-label {
@@ -114,14 +131,15 @@ body {
 
 .location-button {
   width: 100%;
-  min-height: 48px;
-  margin-top: 14px;
-  padding: 11px 14px;
+  min-height: 40px;
+  margin-top: 10px;
+  padding: 8px 11px;
   border: 0;
-  border-radius: 13px;
+  border-radius: 11px;
   background: linear-gradient(135deg, var(--route), var(--route-dark));
   color: var(--button-text);
   font: inherit;
+  font-size: 13px;
   font-weight: 750;
   cursor: pointer;
   box-shadow: 0 9px 20px color-mix(in srgb, var(--route) 24%, transparent);
@@ -143,8 +161,8 @@ body {
 .map-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 9px;
+  gap: 6px;
+  margin-top: 6px;
 }
 
 .map-actions--single { grid-template-columns: 1fr; }
@@ -155,13 +173,13 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  padding: 8px 10px;
+  min-height: 38px;
+  padding: 6px 8px;
   border: 1px solid var(--route);
-  border-radius: 12px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, .82);
   color: var(--route-dark);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 750;
   text-align: center;
   text-decoration: none;
@@ -179,10 +197,12 @@ body {
 
 .location-status {
   min-height: 1.25em;
-  margin-top: 7px !important;
+  margin-top: 5px !important;
   color: var(--muted);
-  font-size: 12px !important;
+  font-size: 11px !important;
 }
+
+.location-status:empty { display: none; }
 
 .route-marker {
   display: grid;
@@ -256,15 +276,14 @@ body {
     left: max(10px, env(safe-area-inset-left));
     width: min(310px, calc(100% - 70px));
     max-height: calc(100% - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-    padding: 15px;
-    border-radius: 18px;
+    padding: 12px;
+    border-radius: 16px;
   }
 
-  .route-info h1 { font-size: 21px; }
-  .route-info p { font-size: 13px; }
-  .route-points { font-size: 12px; }
-  .location-button { padding: 9px 10px; }
-  .map-link { font-size: 12px; }
+  .route-info h1 { font-size: 19px; }
+  .route-info p { font-size: 11px; }
+  .route-points { font-size: 11px; }
+  .route-info--overview .route-summary { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
