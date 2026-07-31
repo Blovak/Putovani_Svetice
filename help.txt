@@ -1,1 +1,70 @@
-Vítejte v aplikaci projektu Světické kilometrobraní. Pomocí této aplikace se Vám sčítají nachozené kilometry. Stačí se zaregistrovat pod svým emailem, vybrat trasu, naskenovat startovní QR kód a vyrazit. V průběhu trasy najdete a naskenujete kontrolní QR kód a v cíli cílový QR kód. Následně se Vám do aplikace propíšou ujité kilometry a přičtou k celkovému skóre. Každou trasu lze absolvovat kolikrát chcete. 
+UŽIVATELSKÝ NÁVOD
+
+Světické kilometrobraní zaznamenává Vaše návštěvy bodů na trasách a sčítá dokončené kilometry. Každou trasu můžete absolvovat opakovaně.
+
+1. OTEVŘENÍ APLIKACE A NAČTENÍ BODU
+
+Nejjednodušší je naskenovat QR kód běžným fotoaparátem telefonu a otevřít zobrazený odkaz. Aplikace automaticky načte příslušný bod trasy.
+
+Pokud otevřete aplikaci bez QR odkazu:
+
+• klepněte na „Naskenovat QR kód“,
+• povolte aplikaci přístup k fotoaparátu,
+• namiřte fotoaparát na QR kód umístěný na trase.
+
+Používejte pouze QR kódy projektu Světické kilometrobraní. Na jednotlivých trasách najdete startovní, kontrolní a cílové body.
+
+2. PŘIHLÁŠENÍ POMOCÍ E-MAILU
+
+Při prvním použití zadejte svou e-mailovou adresu a klepněte na „Poslat ověřovací kód“. Na zadaný e-mail obdržíte šestimístný kód s platností 10 minut.
+
+Kód opište do aplikace a klepněte na „Ověřit e-mail“. Po úspěšném ověření zůstanete na zařízení přihlášeni i pro další body. Jednu e-mailovou adresu používejte po celou dobu akce, aby se všechny výsledky správně spojily.
+
+Pokud jste zadali nesprávný e-mail, zvolte „Změnit e-mail“. Nový kód lze odeslat pomocí volby „Poslat kód znovu“.
+
+3. ZAZNAMENÁNÍ NÁVŠTĚVY
+
+Po načtení bodu a přihlášení klepněte na „Potvrdit návštěvu místa“. Samotné naskenování QR kódu návštěvu neuloží — potvrzení je nutné provést u každého bodu.
+
+Postupujte podle značení vybrané trasy:
+
+1. naskenujte a potvrďte startovní bod,
+2. během cesty naskenujte a potvrďte kontrolní bod,
+3. v cíli naskenujte a potvrďte cílový bod.
+
+Po úspěšném zápisu se zobrazí zpráva „Návštěva místa byla zaznamenána.“
+
+4. MAPA TRASY
+
+Pokud je u bodu k dispozici mapa, po potvrzení návštěvy se zobrazí volba „Otevřít mapu“. Mapa se otevře v nové kartě prohlížeče.
+
+5. STATISTIKY
+
+Po potvrzení návštěvy klepněte na „Zobrazit statistiky“. Uvidíte přehled svých tras, jejich vzdálenosti a informaci, zda byly dokončeny. Zobrazí se také celková vzdálenost, kterou společně dokončili všichni účastníci.
+
+Nově dokončená trasa se může ve statistikách projevit až po několika sekundách. Pokud ji zatím nevidíte, chvíli počkejte a statistiky načtěte znovu.
+
+6. ODHLÁŠENÍ
+
+Chcete-li účet na zařízení odpojit, klepněte na „Odhlásit“. Při příštím použití bude nutné e-mail znovu ověřit.
+
+ŘEŠENÍ BĚŽNÝCH POTÍŽÍ
+
+Ověřovací e-mail nepřišel
+• Zkontrolujte správnost adresy a složky Spam, Hromadné nebo Nevyžádaná pošta.
+• Po uplynutí jedné minuty použijte „Poslat kód znovu“.
+
+Kód není přijat
+• Zadejte všech šest číslic bez dalších znaků.
+• Kód platí 10 minut. Po vypršení si vyžádejte nový.
+
+Fotoaparát se nespustí
+• Povolte přístup k fotoaparátu v nastavení prohlížeče.
+• Zavřete jinou aplikaci, která může fotoaparát používat.
+• QR kód můžete také načíst běžným fotoaparátem telefonu a otevřít nabídnutý odkaz.
+
+Bod nebo data se nenačtou
+• Zkontrolujte připojení k internetu.
+• Použijte QR kód umístěný přímo na trase a zkuste jej naskenovat znovu.
+
+Potřebujete-li se k tomuto návodu vrátit, klepněte v horní části aplikace na „Nápověda“.
