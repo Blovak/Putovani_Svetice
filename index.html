@@ -76,6 +76,26 @@
       margin: 0 0 22px;
     }
 
+    .active-route-notice {
+      margin: 0 0 16px;
+      padding: 13px 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #edf6f0;
+      color: var(--text);
+      text-align: center;
+    }
+
+    .active-route-notice p {
+      margin: 0;
+    }
+
+    .active-route-notice p + p {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
     .point-heading h1 {
       margin: 0;
     }
@@ -141,6 +161,16 @@
     body.route-themed .total-distance {
       background: var(--route-card);
       color: var(--route-text);
+    }
+
+    body.route-themed .active-route-notice {
+      background: var(--route-card);
+      color: var(--route-text);
+      border-color: var(--route-border);
+    }
+
+    body.route-themed .active-route-notice p + p {
+      color: var(--route-muted);
     }
 
     body.route-themed .status.error,
@@ -416,6 +446,10 @@
     </header>
 
     <section class="panel" aria-live="polite">
+      <div id="activeRouteNotice" class="active-route-notice hidden">
+        <p>Pokračujete na rozpracované trase: <strong id="activeRouteName"></strong></p>
+        <p>Poslední naskenovaný bod: <strong id="activeRouteLastPoint"></strong></p>
+      </div>
       <div class="point-heading">
         <h1 id="pointText">Načítám místo...</h1>
         <span id="routeColorIndicator" class="route-color hidden" role="img"></span>
@@ -578,6 +612,7 @@
       scanInProgress: false,
       acceptingScan: false,
       activeRoute: '',
+      activeRouteLastPoint: '',
       isAdmin: false,
       adminReturnStep: 'visit',
       adminLogOffset: 0
@@ -590,6 +625,9 @@
     async function initialize() {
       Object.assign(elements, {
         pointText: document.getElementById('pointText'),
+        activeRouteNotice: document.getElementById('activeRouteNotice'),
+        activeRouteName: document.getElementById('activeRouteName'),
+        activeRouteLastPoint: document.getElementById('activeRouteLastPoint'),
         routeColorIndicator: document.getElementById('routeColorIndicator'),
         scanStep: document.getElementById('scanStep'),
         pointLoadingStep: document.getElementById('pointLoadingStep'),
@@ -992,9 +1030,11 @@
         if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
         if (data.routeCompleted) {
           state.activeRoute = '';
+          state.activeRouteLastPoint = '';
           resetRouteTheme();
         } else {
           state.activeRoute = data.routeIncomplete ? String(data.route || '') : '';
+          state.activeRouteLastPoint = data.routeIncomplete ? String(data.lastPoint || '') : '';
         }
         showStep('result');
         elements.resultMessage.textContent = 'Návštěva místa byla zaznamenána.';
@@ -1022,6 +1062,7 @@
         const data = await apiPost({ action: 'stats', sessionToken: state.sessionToken });
         if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
         state.activeRoute = String(data.activeRoute || '');
+        state.activeRouteLastPoint = String(data.activeRouteLastPoint || '');
         if (!state.point) applyActiveRouteTheme();
         renderStats(data.stats || [], data.totalDistanceKm, data.totalPersonalDistanceKm);
       } catch (error) {
@@ -1273,9 +1314,11 @@
         const data = await apiPost({ action: 'stats', sessionToken: state.sessionToken });
         if (data.status !== 'OK' || state.pointCode || state.point) return;
         state.activeRoute = String(data.activeRoute || '');
-        if (!elements.scanStep.classList.contains('hidden') ||
-            !elements.resultStep.classList.contains('hidden')) {
+        state.activeRouteLastPoint = String(data.activeRouteLastPoint || '');
+        const scanVisible = !elements.scanStep.classList.contains('hidden');
+        if (scanVisible || !elements.resultStep.classList.contains('hidden')) {
           applyActiveRouteTheme();
+          updateActiveRouteNotice(scanVisible);
         }
       } catch (_) {
         // Barva je pomocná informace; výpadek statistik nesmí blokovat aplikaci.
@@ -1335,6 +1378,18 @@
       applyRouteTheme(routeName, color);
     }
 
+    function updateActiveRouteNotice(showOnCurrentStep) {
+      const visible = Boolean(showOnCurrentStep && state.activeRoute);
+      elements.activeRouteNotice.classList.toggle('hidden', !visible);
+      if (!visible) {
+        elements.activeRouteName.textContent = '';
+        elements.activeRouteLastPoint.textContent = '';
+        return;
+      }
+      elements.activeRouteName.textContent = state.activeRoute;
+      elements.activeRouteLastPoint.textContent = state.activeRouteLastPoint || 'zatím není evidován';
+    }
+
     function hideRouteColor() {
       elements.routeColorIndicator.classList.add('hidden');
       elements.routeColorIndicator.style.backgroundColor = '';
@@ -1368,6 +1423,7 @@
       elements.visitStep.classList.toggle('hidden', step !== 'visit');
       elements.resultStep.classList.toggle('hidden', step !== 'result');
       elements.adminStep.classList.toggle('hidden', step !== 'admin');
+      updateActiveRouteNotice(step === 'scan');
       if (step !== 'result') elements.statsSection.classList.add('hidden');
     }
 
