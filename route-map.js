@@ -5,6 +5,15 @@
   const routeKey = (params.get('route') || '').toLowerCase();
   const route = window.ROUTES && window.ROUTES[routeKey];
   const routeKeys = ['cervena', 'cerna', 'modra', 'oranzova', 'zluta', 'hneda', 'zelena'];
+  const overviewMarkerOffsets = {
+    cervena: [-26, -22],
+    cerna: [-18, -18],
+    modra: [26, -22],
+    oranzova: [18, 18],
+    zluta: [0, 0],
+    hneda: [-26, 22],
+    zelena: [26, 22]
+  };
   const isOverview = !routeKey;
   const title = document.getElementById('routeTitle');
   const summary = document.getElementById('routeSummary');
@@ -41,6 +50,10 @@
       const colorLink = document.createElement('a');
       const swatch = document.createElement('span');
       const link = document.createElement('a');
+      const details = document.createElement('span');
+      const start = itemRoute.points.find(function (point) { return point.label === 'START'; });
+      const finish = itemRoute.points.find(function (point) { return point.label === 'CÍL'; });
+      item.className = 'route-overview-item';
       swatch.className = 'route-swatch';
       swatch.style.backgroundColor = itemRoute.color;
       swatch.setAttribute('aria-hidden', 'true');
@@ -52,7 +65,9 @@
         minimumFractionDigits: 1,
         maximumFractionDigits: 1
       }) + ' km';
-      item.append(colorLink, link);
+      details.className = 'route-overview-endpoints';
+      details.textContent = 'START: ' + pointPlace(start) + ' · CÍL: ' + pointPlace(finish);
+      item.append(colorLink, link, details);
       pointsList.appendChild(item);
     });
   } else {
@@ -91,6 +106,10 @@
     });
   }
 
+  function pointPlace(point) {
+    return point.title.replace(/^[^–]+–\s*/, '');
+  }
+
   const visibleBounds = L.latLngBounds([]);
 
   if (isOverview) {
@@ -127,6 +146,34 @@
         line.bringToFront();
       });
       line.on('mouseout', function () { line.setStyle({ weight: 6, opacity: .96 }); });
+
+      overviewRoute.points.forEach(function (point) {
+        if (point.label !== 'START' && point.label !== 'CÍL') return;
+        const size = point.label === 'START' ? 48 : 38;
+        const offset = overviewMarkerOffsets[key];
+        const icon = L.divIcon({
+          className: '',
+          html: '<span class="overview-endpoint-marker" style="--marker-color:' +
+            escapeHtml(overviewRoute.color) + ';--marker-text:' +
+            escapeHtml(overviewRoute.textColor || '#fff') + '">' +
+            escapeHtml(point.label) + '</span>',
+          iconSize: [size, 28],
+          iconAnchor: [size / 2 - offset[0], 14 - offset[1]],
+          popupAnchor: [0, -14]
+        });
+        L.marker(point.position, {
+          icon: icon,
+          title: overviewRoute.name + ' trasa – ' + point.title,
+          keyboard: true,
+          zIndexOffset: point.label === 'START' ? 200 : 100
+        }).addTo(map).bindPopup(
+          '<strong>' + escapeHtml(overviewRoute.name) + ' trasa – ' +
+          escapeHtml(point.label) + '</strong><br>' + escapeHtml(pointPlace(point)) +
+          '<br><a class="route-popup-link" href="mapa.html?route=' + key +
+          '">Zobrazit detail trasy</a>'
+        );
+        visibleBounds.extend(point.position);
+      });
     });
   } else {
     L.polyline(route.coordinates, {
