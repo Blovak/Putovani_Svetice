@@ -44,6 +44,8 @@ Pokud je u bodu k dispozici mapa, po potvrzení návštěvy se zobrazí volba �
 
 Po potvrzení návštěvy klepněte na „Zobrazit statistiky“. V části „Dokončené trasy“ uvidíte délku každé trasy, kolikrát jste ji celou prošli a kolik kilometrů jste na ní celkem dokončili.
 
+Statistiky můžete otevřít také ještě před skenováním QR kódu pomocí tlačítka „Zobrazit statistiky“ na obrazovce skeneru.
+
 V části „Rozpracované trasy“ uvidíte dosud nedokončené průchody, dosažený počet bodů, poslední navštívený bod a čas poslední aktivity. Trasa se započítá jako dokončená po návštěvě jejích bodů ve správném pořadí od startu přes kontrolní bod až do cíle.
 
 Nad přehledy se zobrazuje vaše celková vzdálenost na dokončených trasách a společná vzdálenost všech účastníků.

@@ -339,6 +339,7 @@
         </div>
         <p class="scanner-intro">Namiřte fotoaparát na QR kód umístěný na trase.</p>
         <button id="startScanButton" class="primary" type="button">Naskenovat QR kód</button>
+        <button id="scanStatsButton" class="secondary" type="button">Zobrazit statistiky</button>
         <button id="adminScanButton" class="secondary admin-entry hidden" type="button">Přepnout do admin režimu</button>
         <div id="qrReader" class="qr-reader hidden"></div>
         <div id="scannerActions" class="scanner-actions hidden">
@@ -483,6 +484,7 @@
         scanAccountEmail: document.getElementById('scanAccountEmail'),
         scanLogoutButton: document.getElementById('scanLogoutButton'),
         startScanButton: document.getElementById('startScanButton'),
+        scanStatsButton: document.getElementById('scanStatsButton'),
         adminScanButton: document.getElementById('adminScanButton'),
         qrReader: document.getElementById('qrReader'),
         scannerActions: document.getElementById('scannerActions'),
@@ -604,6 +606,7 @@
       elements.adminLogButton.addEventListener('click', function () { loadAdminLog(true); });
       elements.adminLoadMoreButton.addEventListener('click', function () { loadAdminLog(false); });
       elements.startScanButton.addEventListener('click', startScanner);
+      elements.scanStatsButton.addEventListener('click', openStatsBeforeScan);
       elements.stopScanButton.addEventListener('click', stopScanner);
       elements.helpButton.addEventListener('click', showHelp);
       elements.helpCloseButton.addEventListener('click', function () {
@@ -893,6 +896,16 @@
       } finally {
         setBusy(elements.statsButton, false, 'Zobrazit statistiky');
       }
+    }
+
+    async function openStatsBeforeScan() {
+      await stopScanner();
+      elements.pointText.textContent = 'Statistiky';
+      elements.resultMessage.textContent = '';
+      elements.mapLink.classList.add('hidden');
+      showStatus('');
+      showStep('result');
+      await loadStats();
     }
 
     function renderStats(stats, totalDistanceKm, totalPersonalDistanceKm) {
