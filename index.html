@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Putování Světice</title>
+  <title>Světické kilometrobraní</title>
   <style>
     :root {
       color-scheme: light;
@@ -37,7 +37,20 @@
       display: block;
       width: 100%;
       height: auto;
+      margin-bottom: 12px;
+    }
+
+    .app-header {
       margin-bottom: 18px;
+      text-align: center;
+    }
+
+    .app-name {
+      margin: 0 0 8px;
+      color: var(--text);
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.3;
     }
 
     .panel {
@@ -172,6 +185,53 @@
     .status.error { color: var(--danger); }
     .status.success { color: var(--primary); }
 
+    .help-dialog {
+      width: min(100% - 32px, 520px);
+      max-height: min(80vh, 680px);
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .help-dialog::backdrop {
+      background: rgba(20, 30, 22, .55);
+    }
+
+    .help-dialog-content {
+      padding: 24px;
+    }
+
+    .help-dialog-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .help-dialog h2 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .help-close {
+      flex: 0 0 auto;
+      min-width: 46px;
+      padding: 8px;
+      background: transparent;
+      color: var(--primary);
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .help-text {
+      margin: 0;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+
     .total-distance {
       margin: 0 0 16px;
       padding: 14px;
@@ -209,7 +269,12 @@
 </head>
 <body>
   <main>
-    <img src="logo.png" alt="Putování Světice" class="logo">
+    <img src="logo.png" alt="Světické kilometrobraní" class="logo">
+
+    <header class="app-header">
+      <p class="app-name">Světické kilometrobraní</p>
+      <button id="helpButton" class="text-button" type="button">Nápověda</button>
+    </header>
 
     <section class="panel" aria-live="polite">
       <h1 id="pointText">Načítám místo...</h1>
@@ -264,6 +329,16 @@
     </section>
   </main>
 
+  <dialog id="helpDialog" class="help-dialog" aria-labelledby="helpTitle">
+    <div class="help-dialog-content">
+      <div class="help-dialog-header">
+        <h2 id="helpTitle">Nápověda</h2>
+        <button id="helpCloseButton" class="help-close" type="button" aria-label="Zavřít nápovědu">×</button>
+      </div>
+      <p id="helpText" class="help-text"></p>
+    </div>
+  </dialog>
+
   <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbwob_-wf5eoG3bzOWRVu5PhxhyYI8KPQSn7d0SfiC0DK0O7OwJNsSPfH9KMNXywb0iC/exec';
     const SESSION_KEY = 'putovani:session';
@@ -307,7 +382,11 @@
         emptyStats: document.getElementById('emptyStats'),
         statsTable: document.getElementById('statsTable'),
         statsBody: document.getElementById('statsBody'),
-        status: document.getElementById('status')
+        status: document.getElementById('status'),
+        helpButton: document.getElementById('helpButton'),
+        helpDialog: document.getElementById('helpDialog'),
+        helpCloseButton: document.getElementById('helpCloseButton'),
+        helpText: document.getElementById('helpText')
       });
 
       bindEvents();
@@ -359,6 +438,25 @@
       elements.visitButton.addEventListener('click', recordVisit);
       elements.statsButton.addEventListener('click', loadStats);
       elements.logoutButton.addEventListener('click', logout);
+      elements.helpButton.addEventListener('click', showHelp);
+      elements.helpCloseButton.addEventListener('click', function () {
+        elements.helpDialog.close();
+      });
+      elements.helpDialog.addEventListener('click', function (event) {
+        if (event.target === elements.helpDialog) elements.helpDialog.close();
+      });
+    }
+
+    async function showHelp() {
+      elements.helpText.textContent = 'Načítám nápovědu...';
+      elements.helpDialog.showModal();
+      try {
+        const response = await fetch('help.txt');
+        if (!response.ok) throw new Error('HELP_NOT_FOUND');
+        elements.helpText.textContent = (await response.text()).trim();
+      } catch (_) {
+        elements.helpText.textContent = 'Nápovědu se nepodařilo načíst. Zkontrolujte připojení a zkuste to znovu.';
+      }
     }
 
     async function loadPoint() {
