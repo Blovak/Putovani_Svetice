@@ -62,6 +62,11 @@ Kód není přijat
 • Zadejte všech šest číslic bez dalších znaků.
 • Kód platí 10 minut. Po vypršení si vyžádejte nový.
 
+Po obnovení stránky se nepodařilo ověřit přihlášení
+• Aplikace uložené přihlášení automaticky několikrát ověří.
+• Při krátkodobém výpadku zůstane přihlášení uložené. Zkontrolujte připojení a klepněte na „Zkusit znovu“.
+• Nové ověření e-mailem zvolte pouze tehdy, pokud se chcete přihlásit jiným účtem nebo pokud původní relace skutečně vypršela.
+
 Fotoaparát se nespustí
 • Povolte přístup k fotoaparátu v nastavení prohlížeče.
 • Zavřete jinou aplikaci, která může fotoaparát používat.
