@@ -1,0 +1,18 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Metadata z jednotlivého QR bodu je veřejná součást trasy. Výpis celé
+    // kolekce zůstává zakázaný, takže klient musí znát konkrétní kód z QR.
+    match /points/{pointId} {
+      allow get: if true;
+      allow list, create, update, delete: if false;
+    }
+
+    // Uživatelé, relace, OTP, návštěvy, statistiky i agregáty jsou dostupné
+    // pouze serverovému Apps Scriptu přes IAM; veřejný klient k nim nesmí.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

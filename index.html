@@ -597,11 +597,14 @@
     </div>
   </dialog>
 
-  <script src="vendor/html5-qrcode/html5-qrcode.min.js"></script>
   <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbz6ftCeslB6Iy9zd2fN8QXnoQUpz-XaBkY1QBjUxyB632j6qMtNOjwLhwb-h0iq7FOl/exec';
+    const FIRESTORE_POINT_URL = 'https://firestore.googleapis.com/v1/projects/putovani-svetice-2026/databases/(default)/documents/points/';
+    const SCANNER_SCRIPT_URL = 'vendor/html5-qrcode/html5-qrcode.min.js';
     const SESSION_KEY = 'putovani:session';
     const EMAIL_KEY = 'putovani:email';
+    const POINT_CACHE_PREFIX = 'putovani:point:v1:';
+    const POINT_CACHE_MS = 60 * 60 * 1000;
     const QR_APP_ORIGIN = 'https://blovak.github.io';
     const QR_APP_PATH = '/Putovani_Svetice/index.html';
     const ROUTE_COLORS = Object.freeze({
@@ -635,6 +638,7 @@
       point: null,
       email: '',
       sessionToken: localStorage.getItem(SESSION_KEY) || '',
+      sessionVerified: false,
       scanner: null,
       scanInProgress: false,
       acceptingScan: false,
@@ -642,7 +646,8 @@
       activeRouteLastPoint: '',
       isAdmin: false,
       adminReturnStep: 'visit',
-      adminLogOffset: 0
+      adminLogOffset: 0,
+      scannerLibraryPromise: null
     };
 
     const elements = {};
@@ -725,9 +730,15 @@
 
       bindEvents();
       elements.email.value = localStorage.getItem(EMAIL_KEY) || '';
+      state.email = elements.email.value.trim().toLowerCase();
       state.pointCode = new URLSearchParams(window.location.search).get('code') || '';
 
       if (!state.pointCode) {
+        if (state.sessionToken && state.email) {
+          showAuthenticated();
+          validateStoredSessionInBackground();
+          return;
+        }
         if (state.sessionToken) {
           const sessionValid = await restoreSession();
           if (sessionValid) return;
@@ -802,6 +813,11 @@
       if (!pointLoaded) return false;
 
       if (state.sessionToken) {
+        if (state.sessionVerified || state.email) {
+          showAuthenticated();
+          if (!state.sessionVerified) validateStoredSessionInBackground();
+          return true;
+        }
         const sessionValid = await restoreSession();
         if (sessionValid) return true;
         if (sessionValid === null) return true;
@@ -812,6 +828,15 @@
 
     async function startScanner() {
       if (state.scanInProgress) return;
+      setBusy(elements.startScanButton, true, 'Načítám skener...');
+      try {
+        await loadScannerLibrary();
+      } catch (_) {
+        showStatus('Skenování QR kódu se nepodařilo načíst. Obnovte stránku a zkuste to znovu.', true);
+        setBusy(elements.startScanButton, false, 'Naskenovat QR kód');
+        return;
+      }
+      setBusy(elements.startScanButton, false, 'Naskenovat QR kód');
       if (typeof Html5Qrcode === 'undefined') {
         showStatus('Skenování QR kódu se nepodařilo načíst. Obnovte stránku a zkuste to znovu.', true);
         return;
@@ -956,17 +981,20 @@
       }
     }
 
-    async function restoreSession() {
+    async function restoreSession(showResult) {
+      showResult = showResult !== false;
       const retryDelays = [0, 700, 1600];
       for (let attempt = 0; attempt < retryDelays.length; attempt++) {
         if (retryDelays[attempt]) await delay(retryDelays[attempt]);
         try {
-          const data = await apiPost({ action: 'session', sessionToken: state.sessionToken });
+          const data = await apiPostWithRetry({ action: 'session', sessionToken: state.sessionToken });
           if (data.status === 'OK') {
+            state.sessionVerified = true;
             state.email = data.email;
             applyAccess(data);
             localStorage.setItem(EMAIL_KEY, state.email);
-            showAuthenticated();
+            if (showResult) showAuthenticated();
+            else updateAuthenticatedIdentity();
             return true;
           }
           if (data.error === 'UNAUTHORIZED') {
@@ -977,8 +1005,19 @@
           // Krátkodobá chyba připojení nesmí zahodit uloženou relaci.
         }
       }
-      showSessionRecovery();
+      if (showResult) showSessionRecovery();
       return null;
+    }
+
+    async function validateStoredSessionInBackground() {
+      const validatedToken = state.sessionToken;
+      const result = await restoreSession(false);
+      if (result === false) {
+        if (!state.sessionToken) showEmailStep();
+        return;
+      }
+      if (validatedToken !== state.sessionToken) return;
+      if (result === true && !state.pointCode && !state.point) loadActiveRouteTheme();
     }
 
     async function retryStoredSession() {
@@ -1033,6 +1072,7 @@
         });
         if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
         state.sessionToken = data.sessionToken;
+        state.sessionVerified = true;
         state.email = data.email;
         applyAccess(data);
         localStorage.setItem(SESSION_KEY, state.sessionToken);
@@ -1088,7 +1128,7 @@
       setBusy(elements.statsButton, true, 'Načítám...');
       showStatus('');
       try {
-        const data = await apiPost({ action: 'stats', sessionToken: state.sessionToken });
+        const data = await apiPostWithRetry({ action: 'stats', sessionToken: state.sessionToken });
         if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
         state.activeRoute = String(data.activeRoute || '');
         state.activeRouteLastPoint = String(data.activeRouteLastPoint || '');
@@ -1193,7 +1233,7 @@
     async function loadAdminTotalDistance() {
       elements.adminTotalDistance.textContent = 'Načítám celkovou vzdálenost...';
       try {
-        const data = await apiPost({ action: 'stats', sessionToken: state.sessionToken });
+        const data = await apiPostWithRetry({ action: 'stats', sessionToken: state.sessionToken });
         if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
         elements.adminTotalDistance.textContent = totalDistanceText(data.totalDistanceKm);
       } catch (error) {
@@ -1217,7 +1257,7 @@
       setBusy(elements.adminUsersButton, true, 'Načítám...');
       showStatus('');
       try {
-        const data = await apiPost({ action: 'adminUsers', sessionToken: state.sessionToken });
+        const data = await apiPostWithRetry({ action: 'adminUsers', sessionToken: state.sessionToken });
         if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
         const users = data.users || [];
         renderAdminTable(
@@ -1247,7 +1287,7 @@
       setBusy(reset ? elements.adminLogButton : elements.adminLoadMoreButton, true, 'Načítám...');
       showStatus('');
       try {
-        const data = await apiPost({
+        const data = await apiPostWithRetry({
           action: 'adminLog',
           sessionToken: state.sessionToken,
           offset: state.adminLogOffset,
@@ -1322,8 +1362,7 @@
     }
 
     function showAuthenticated() {
-      elements.accountEmail.textContent = state.email;
-      elements.scanAccountEmail.textContent = state.email;
+      updateAuthenticatedIdentity();
       elements.headerRoutesLink.classList.remove('hidden');
       updateAdminControls();
       if (state.pointCode) {
@@ -1333,15 +1372,21 @@
         setHeadingForStep('scan');
         applyActiveRouteTheme();
         showStep('scan');
-        loadActiveRouteTheme();
+        warmScannerLibrary();
+        if (state.sessionVerified) loadActiveRouteTheme();
       }
+    }
+
+    function updateAuthenticatedIdentity() {
+      elements.accountEmail.textContent = state.email;
+      elements.scanAccountEmail.textContent = state.email;
     }
 
     async function loadActiveRouteTheme() {
       const requestedWithoutPoint = !state.pointCode && !state.point;
       if (!requestedWithoutPoint || !state.sessionToken) return;
       try {
-        const data = await apiPost({ action: 'stats', sessionToken: state.sessionToken });
+        const data = await apiPostWithRetry({ action: 'stats', sessionToken: state.sessionToken });
         if (data.status !== 'OK' || state.pointCode || state.point) return;
         state.activeRoute = String(data.activeRoute || '');
         state.activeRouteLastPoint = String(data.activeRouteLastPoint || '');
@@ -1467,6 +1512,7 @@
 
     function clearSession() {
       state.sessionToken = '';
+      state.sessionVerified = false;
       state.activeRoute = '';
       state.activeRouteLastPoint = '';
       state.isAdmin = false;
@@ -1504,6 +1550,22 @@
     }
 
     async function loadPointWithRetry() {
+      const cached = readCachedPoint(state.pointCode);
+      if (cached) return cached;
+
+      const directUrl = FIRESTORE_POINT_URL + encodeURIComponent(state.pointCode) +
+        '?mask.fieldPaths=text&mask.fieldPaths=mapUrl&mask.fieldPaths=route';
+      try {
+        const response = await fetchWithTimeout(directUrl, {}, 5000);
+        if (response.status === 404) return { status: 'ERROR', error: 'POINT_NOT_FOUND' };
+        if (!response.ok) throw new Error('FIRESTORE_UNAVAILABLE');
+        const point = pointFromFirestoreDocument(await response.json());
+        cachePoint(state.pointCode, point);
+        return point;
+      } catch (_) {
+        // Při výpadku přímého čtení zůstává Apps Script bezpečnou zálohou.
+      }
+
       const retryDelays = [0, 900, 1800];
       let lastError;
       const url = API_URL + '?action=code&code=' + encodeURIComponent(state.pointCode);
@@ -1522,6 +1584,60 @@
         }
       }
       throw lastError;
+    }
+
+    function pointFromFirestoreDocument(document) {
+      const fields = document && document.fields;
+      if (!fields) throw new Error('INVALID_RESPONSE');
+      return {
+        status: 'OK',
+        text: firestoreScalar(fields.text),
+        mapUrl: firestoreScalar(fields.mapUrl),
+        route: firestoreScalar(fields.route)
+      };
+    }
+
+    function firestoreScalar(value) {
+      if (!value) return '';
+      if (Object.prototype.hasOwnProperty.call(value, 'stringValue')) return value.stringValue;
+      if (Object.prototype.hasOwnProperty.call(value, 'integerValue')) return Number(value.integerValue);
+      if (Object.prototype.hasOwnProperty.call(value, 'doubleValue')) return Number(value.doubleValue);
+      if (Object.prototype.hasOwnProperty.call(value, 'booleanValue')) return value.booleanValue;
+      return '';
+    }
+
+    function readCachedPoint(code) {
+      try {
+        const cached = JSON.parse(localStorage.getItem(POINT_CACHE_PREFIX + code) || 'null');
+        if (!cached || Date.now() - Number(cached.savedAt) > POINT_CACHE_MS) return null;
+        return cached.point || null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function cachePoint(code, point) {
+      try {
+        localStorage.setItem(POINT_CACHE_PREFIX + code, JSON.stringify({ savedAt: Date.now(), point: point }));
+      } catch (_) {}
+    }
+
+    function warmScannerLibrary() {
+      loadScannerLibrary().catch(function () {});
+    }
+
+    function loadScannerLibrary() {
+      if (typeof Html5Qrcode !== 'undefined') return Promise.resolve();
+      if (state.scannerLibraryPromise) return state.scannerLibraryPromise;
+      state.scannerLibraryPromise = new Promise(function (resolve, reject) {
+        const script = document.createElement('script');
+        script.src = SCANNER_SCRIPT_URL;
+        script.async = true;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+      return state.scannerLibraryPromise;
     }
 
     async function fetchWithTimeout(url, options, timeoutMs) {
