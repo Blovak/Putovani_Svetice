@@ -943,8 +943,7 @@
 
     async function loadPoint() {
       try {
-        const response = await fetch(API_URL + '?action=code&code=' + encodeURIComponent(state.pointCode));
-        const data = await response.json();
+        const data = await loadPointWithRetry();
         if (data.status !== 'OK') throw new Error(data.error || 'POINT_NOT_FOUND');
         state.point = data;
         setPointHeading(data.text || 'Bod trasy', data.route);
@@ -1476,12 +1475,12 @@
       localStorage.removeItem(SESSION_KEY);
     }
 
-    async function apiPost(payload) {
-      const response = await fetch(API_URL, {
+    async function apiPost(payload, timeoutMs) {
+      const response = await fetchWithTimeout(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
         body: new URLSearchParams(payload).toString()
-      });
+      }, timeoutMs);
       const text = await response.text();
       try {
         return JSON.parse(text);
@@ -1496,12 +1495,44 @@
       for (const retryDelay of retryDelays) {
         if (retryDelay) await delay(retryDelay);
         try {
-          return await apiPost(payload);
+          return await apiPost(payload, 30000);
         } catch (error) {
           lastError = error;
         }
       }
       throw lastError;
+    }
+
+    async function loadPointWithRetry() {
+      const retryDelays = [0, 900, 1800];
+      let lastError;
+      const url = API_URL + '?action=code&code=' + encodeURIComponent(state.pointCode);
+      for (const retryDelay of retryDelays) {
+        if (retryDelay) await delay(retryDelay);
+        try {
+          const response = await fetchWithTimeout(url, {}, 30000);
+          const text = await response.text();
+          try {
+            return JSON.parse(text);
+          } catch (_) {
+            throw new Error('INVALID_RESPONSE');
+          }
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      throw lastError;
+    }
+
+    async function fetchWithTimeout(url, options, timeoutMs) {
+      if (typeof AbortController === 'undefined' || !timeoutMs) return fetch(url, options);
+      const controller = new AbortController();
+      const timeout = setTimeout(function () { controller.abort(); }, timeoutMs);
+      try {
+        return await fetch(url, Object.assign({}, options, { signal: controller.signal }));
+      } finally {
+        clearTimeout(timeout);
+      }
     }
 
     function createRequestId() {
