@@ -647,7 +647,9 @@
       isAdmin: false,
       adminReturnStep: 'visit',
       adminLogOffset: 0,
-      scannerLibraryPromise: null
+      scannerLibraryPromise: null,
+      verificationRequestId: '',
+      verificationRequestKey: ''
     };
 
     const elements = {};
@@ -1045,8 +1047,11 @@
       setBusy(elements.sendCodeButton, true, 'Odesílám...');
       setBusy(elements.resendButton, true, 'Odesílám...');
       showStatus('');
+      const slowNotice = window.setTimeout(function () {
+        showStatus('Ověřovací server odpovídá pomaleji. Požadavek stále zpracováváme…');
+      }, 8000);
       try {
-        const data = await apiPost({ action: 'requestCode', email: state.email });
+        const data = await apiPost({ action: 'requestCode', email: state.email }, 30000);
         if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
         localStorage.setItem(EMAIL_KEY, state.email);
         elements.pendingEmail.textContent = state.email;
@@ -1056,6 +1061,7 @@
       } catch (error) {
         showStatus(messageForError(error.message), true);
       } finally {
+        window.clearTimeout(slowNotice);
         setBusy(elements.sendCodeButton, false, 'Poslat ověřovací kód');
         setBusy(elements.resendButton, false, 'Poslat kód znovu');
       }
@@ -1064,11 +1070,20 @@
     async function verifyCode(code) {
       setBusy(elements.verifyButton, true, 'Ověřuji...');
       showStatus('');
+      const requestKey = state.email + ':' + code;
+      if (!state.verificationRequestId || state.verificationRequestKey !== requestKey) {
+        state.verificationRequestId = createRequestId('verify');
+        state.verificationRequestKey = requestKey;
+      }
+      const slowNotice = window.setTimeout(function () {
+        showStatus('Ověřovací server odpovídá pomaleji. Požadavek stále bezpečně zpracováváme…');
+      }, 8000);
       try {
-        const data = await apiPost({
+        const data = await apiPostWithRetry({
           action: 'verifyCode',
           email: state.email,
-          verificationCode: code
+          verificationCode: code,
+          requestId: state.verificationRequestId
         });
         if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
         state.sessionToken = data.sessionToken;
@@ -1077,11 +1092,14 @@
         applyAccess(data);
         localStorage.setItem(SESSION_KEY, state.sessionToken);
         localStorage.setItem(EMAIL_KEY, state.email);
+        state.verificationRequestId = '';
+        state.verificationRequestKey = '';
         showAuthenticated();
         showStatus('E-mail byl ověřen.', false, true);
       } catch (error) {
         showStatus(messageForError(error.message), true);
       } finally {
+        window.clearTimeout(slowNotice);
         setBusy(elements.verifyButton, false, 'Ověřit e-mail');
       }
     }
@@ -1094,7 +1112,7 @@
           action: 'visit',
           sessionToken: state.sessionToken,
           code: state.pointCode,
-          requestId: createRequestId()
+          requestId: createRequestId('visit')
         });
         if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
         if (data.routeCompleted) {
@@ -1538,10 +1556,16 @@
     async function apiPostWithRetry(payload) {
       const retryDelays = [0, 900, 1800];
       let lastError;
-      for (const retryDelay of retryDelays) {
+      for (let attempt = 0; attempt < retryDelays.length; attempt++) {
+        const retryDelay = retryDelays[attempt];
         if (retryDelay) await delay(retryDelay);
         try {
-          return await apiPost(payload, 30000);
+          const data = await apiPost(payload, 30000);
+          if (data && data.status === 'ERROR' && data.error === 'SERVER_ERROR' && attempt < retryDelays.length - 1) {
+            lastError = new Error('SERVER_ERROR');
+            continue;
+          }
+          return data;
         } catch (error) {
           lastError = error;
         }
@@ -1651,12 +1675,13 @@
       }
     }
 
-    function createRequestId() {
+    function createRequestId(prefix) {
+      const safePrefix = /^[a-z]+$/.test(String(prefix || '')) ? prefix : 'request';
       if (window.crypto && typeof window.crypto.randomUUID === 'function') {
-        return 'visit_' + window.crypto.randomUUID();
+        return safePrefix + '_' + window.crypto.randomUUID();
       }
       const random = Math.random().toString(36).slice(2);
-      return 'visit_' + Date.now().toString(36) + '_' + random + random;
+      return safePrefix + '_' + Date.now().toString(36) + '_' + random + random;
     }
 
     function setBusy(button, busy, label) {
