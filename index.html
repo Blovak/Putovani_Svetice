@@ -1051,10 +1051,11 @@
       setBusy(elements.visitButton, true, 'Zapisuji...');
       showStatus('');
       try {
-        const data = await apiPost({
+        const data = await apiPostWithRetry({
           action: 'visit',
           sessionToken: state.sessionToken,
-          code: state.pointCode
+          code: state.pointCode,
+          requestId: createRequestId()
         });
         if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
         if (data.routeCompleted) {
@@ -1487,6 +1488,28 @@
       } catch (_) {
         throw new Error('INVALID_RESPONSE');
       }
+    }
+
+    async function apiPostWithRetry(payload) {
+      const retryDelays = [0, 900, 1800];
+      let lastError;
+      for (const retryDelay of retryDelays) {
+        if (retryDelay) await delay(retryDelay);
+        try {
+          return await apiPost(payload);
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      throw lastError;
+    }
+
+    function createRequestId() {
+      if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+        return 'visit_' + window.crypto.randomUUID();
+      }
+      const random = Math.random().toString(36).slice(2);
+      return 'visit_' + Date.now().toString(36) + '_' + random + random;
     }
 
     function setBusy(button, busy, label) {
