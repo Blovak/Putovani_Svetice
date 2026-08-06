@@ -25,11 +25,7 @@ for (const name of required) {
 }
 
 const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
-const buildVersion = [
-  process.env.GITHUB_SHA,
-  process.env.GITHUB_RUN_ID,
-  process.env.GITHUB_RUN_ATTEMPT
-].join('-');
+const buildVersion = process.env.GITHUB_SHA;
 let deploymentId = '';
 
 async function github(path, options = {}) {
