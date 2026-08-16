@@ -226,34 +226,6 @@ body {
   border-radius: 11px;
 }
 
-.leaflet-tooltip.route-point-tooltip {
-  padding: 5px 8px;
-  border: 2px solid var(--route);
-  border-radius: 9px;
-  background: rgba(255, 255, 255, .96);
-  color: var(--route-dark);
-  font-size: 12px;
-  font-weight: 850;
-  line-height: 1;
-  box-shadow: 0 5px 14px rgba(0, 0, 0, .24);
-}
-
-.leaflet-tooltip-top.route-point-tooltip::before {
-  border-top-color: var(--route);
-}
-
-.leaflet-tooltip-bottom.route-point-tooltip::before {
-  border-bottom-color: var(--route);
-}
-
-.leaflet-tooltip-left.route-point-tooltip::before {
-  border-left-color: var(--route);
-}
-
-.leaflet-tooltip-right.route-point-tooltip::before {
-  border-right-color: var(--route);
-}
-
 .position-marker {
   display: block;
   width: 20px;
