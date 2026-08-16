@@ -164,12 +164,22 @@
 
   if (!isOverview) {
     route.points.forEach(function (point) {
-      L.marker(point.position, {
+      const marker = L.marker(point.position, {
         icon: markerIcon(point),
         title: point.title,
         keyboard: true,
         zIndexOffset: point.label === 'QR' ? 500 : 0
       }).addTo(map).bindPopup('<strong>' + escapeHtml(point.title) + '</strong>');
+      if (point.displayName) {
+        const tooltipDirection = point.label === 'START' ? 'top' : point.label === 'CÍL' ? 'bottom' : 'auto';
+        const tooltipOffset = tooltipDirection === 'top' ? [0, -22] : tooltipDirection === 'bottom' ? [0, 22] : [0, 0];
+        marker.bindTooltip(escapeHtml(point.displayName), {
+          permanent: true,
+          direction: tooltipDirection,
+          offset: tooltipOffset,
+          className: 'route-point-tooltip'
+        });
+      }
       visibleBounds.extend(point.position);
     });
   }
