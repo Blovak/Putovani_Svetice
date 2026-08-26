@@ -26,11 +26,13 @@ Používejte pouze QR kódy projektu Světické kilometrobraní. Na jednotlivýc
 
 Po načtení bodu a přihlášení klepněte na „Potvrdit návštěvu místa“. Samotné naskenování QR kódu návštěvu neuloží — potvrzení je nutné provést u každého bodu.
 
-Postupujte podle značení vybrané trasy:
+Trasou můžete projít v obou směrech. Postupujte podle značení vybrané trasy:
 
 1. naskenujte a potvrďte startovní bod,
 2. během cesty naskenujte a potvrďte kontrolní bod,
 3. v cíli naskenujte a potvrďte cílový bod.
+
+Při cestě opačným směrem potvrďte body v pořadí cíl, kontrolní bod a start.
 
 Po úspěšném zápisu se zobrazí zpráva „Návštěva místa byla zaznamenána.“
 
@@ -46,7 +48,7 @@ Po potvrzení návštěvy klepněte na „Zobrazit statistiky“. V části „D
 
 Statistiky můžete otevřít také ještě před skenováním QR kódu pomocí tlačítka „Zobrazit statistiky“ na obrazovce skeneru.
 
-V části „Rozpracované trasy“ uvidíte dosud nedokončené průchody, dosažený počet bodů, poslední navštívený bod a čas poslední aktivity. Trasa se započítá jako dokončená po návštěvě jejích bodů ve správném pořadí od startu přes kontrolní bod až do cíle.
+V části „Rozpracované trasy“ uvidíte dosud nedokončené průchody, dosažený počet bodů, poslední navštívený bod a čas poslední aktivity. Trasa se započítá jako dokončená po návštěvě jejích bodů ve správném pořadí: buď od startu přes kontrolní bod až do cíle, nebo opačně od cíle přes kontrolní bod až ke startu.
 
 Nad přehledy se zobrazuje vaše celková vzdálenost na dokončených trasách a společná vzdálenost všech účastníků.
 
