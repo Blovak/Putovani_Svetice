@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#eef5ef">
-  <meta name="app-version" content="otp-resilience-21">
+  <meta name="app-version" content="admin-participant-stats-24">
   <title>Světické kilometrobraní</title>
   <style>
     :root {
@@ -569,6 +569,7 @@
         <p id="adminTotalDistance" class="total-distance" aria-live="polite"></p>
         <div class="actions">
           <button id="adminUsersButton" class="secondary" type="button">Seznam uživatelů</button>
+          <button id="adminParticipantStatsButton" class="secondary" type="button">Statistiky účastníků</button>
           <button id="adminLogButton" class="secondary" type="button">Výpis logu</button>
         </div>
         <section id="adminContent" class="hidden">
@@ -715,6 +716,7 @@
         adminTotalDistance: document.getElementById('adminTotalDistance'),
         exitAdminButton: document.getElementById('exitAdminButton'),
         adminUsersButton: document.getElementById('adminUsersButton'),
+        adminParticipantStatsButton: document.getElementById('adminParticipantStatsButton'),
         adminLogButton: document.getElementById('adminLogButton'),
         adminContent: document.getElementById('adminContent'),
         adminContentTitle: document.getElementById('adminContentTitle'),
@@ -796,6 +798,7 @@
       elements.adminScanButton.addEventListener('click', enterAdminMode);
       elements.exitAdminButton.addEventListener('click', exitAdminMode);
       elements.adminUsersButton.addEventListener('click', loadAdminUsers);
+      elements.adminParticipantStatsButton.addEventListener('click', loadAdminParticipantStats);
       elements.adminLogButton.addEventListener('click', function () { loadAdminLog(true); });
       elements.adminLoadMoreButton.addEventListener('click', function () { loadAdminLog(false); });
       elements.startScanButton.addEventListener('click', startScanner);
@@ -1294,6 +1297,34 @@
         handleAdminError(error);
       } finally {
         setBusy(elements.adminUsersButton, false, 'Seznam uživatelů');
+      }
+    }
+
+    async function loadAdminParticipantStats() {
+      setBusy(elements.adminParticipantStatsButton, true, 'Načítám...');
+      showStatus('');
+      try {
+        const data = await apiPostWithRetry({
+          action: 'adminParticipantStats',
+          sessionToken: state.sessionToken
+        });
+        if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
+        const participants = data.participants || [];
+        renderAdminTable(
+          ['E-mail', 'Dosud ušlá vzdálenost'],
+          participants.map(function (participant) {
+            return [participant.email, formatDistance(participant.totalDistanceKm) + ' km'];
+          }),
+          false
+        );
+        elements.adminContentTitle.textContent = 'Statistiky účastníků';
+        elements.adminSummary.textContent = 'Počet účastníků: ' + Number(data.total || participants.length);
+        elements.adminContent.classList.remove('hidden');
+        elements.adminLoadMoreButton.classList.add('hidden');
+      } catch (error) {
+        handleAdminError(error);
+      } finally {
+        setBusy(elements.adminParticipantStatsButton, false, 'Statistiky účastníků');
       }
     }
 
