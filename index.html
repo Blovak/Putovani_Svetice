@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#eef5ef">
-  <meta name="app-version" content="admin-participant-stats-24">
+  <meta name="app-version" content="admin-usage-report-25">
   <title>Světické kilometrobraní</title>
   <style>
     :root {
@@ -568,6 +568,7 @@
         </div>
         <p id="adminTotalDistance" class="total-distance" aria-live="polite"></p>
         <div class="actions">
+          <button id="adminUsageReportButton" class="secondary" type="button">Využití tras</button>
           <button id="adminUsersButton" class="secondary" type="button">Seznam uživatelů</button>
           <button id="adminParticipantStatsButton" class="secondary" type="button">Statistiky účastníků</button>
           <button id="adminLogButton" class="secondary" type="button">Výpis logu</button>
@@ -575,7 +576,8 @@
         <section id="adminContent" class="hidden">
           <h2 id="adminContentTitle"></h2>
           <p id="adminSummary" class="admin-summary"></p>
-          <div class="table-scroll">
+          <div id="adminReport" class="admin-report hidden"></div>
+          <div id="adminTableScroll" class="table-scroll">
             <table id="adminTable" class="admin-table">
               <thead id="adminTableHead"></thead>
               <tbody id="adminTableBody"></tbody>
@@ -716,11 +718,14 @@
         adminTotalDistance: document.getElementById('adminTotalDistance'),
         exitAdminButton: document.getElementById('exitAdminButton'),
         adminUsersButton: document.getElementById('adminUsersButton'),
+        adminUsageReportButton: document.getElementById('adminUsageReportButton'),
         adminParticipantStatsButton: document.getElementById('adminParticipantStatsButton'),
         adminLogButton: document.getElementById('adminLogButton'),
         adminContent: document.getElementById('adminContent'),
         adminContentTitle: document.getElementById('adminContentTitle'),
         adminSummary: document.getElementById('adminSummary'),
+        adminReport: document.getElementById('adminReport'),
+        adminTableScroll: document.getElementById('adminTableScroll'),
         adminTable: document.getElementById('adminTable'),
         adminTableHead: document.getElementById('adminTableHead'),
         adminTableBody: document.getElementById('adminTableBody'),
@@ -797,6 +802,7 @@
       elements.adminResultButton.addEventListener('click', enterAdminMode);
       elements.adminScanButton.addEventListener('click', enterAdminMode);
       elements.exitAdminButton.addEventListener('click', exitAdminMode);
+      elements.adminUsageReportButton.addEventListener('click', loadAdminUsageReport);
       elements.adminUsersButton.addEventListener('click', loadAdminUsers);
       elements.adminParticipantStatsButton.addEventListener('click', loadAdminParticipantStats);
       elements.adminLogButton.addEventListener('click', function () { loadAdminLog(true); });
@@ -1244,6 +1250,7 @@
       hideRouteColor();
       elements.adminEmail.textContent = state.email;
       elements.adminContent.classList.add('hidden');
+      setAdminReportMode(false);
       elements.adminTableHead.replaceChildren();
       elements.adminTableBody.replaceChildren();
       elements.adminLoadMoreButton.classList.add('hidden');
@@ -1276,6 +1283,7 @@
     }
 
     async function loadAdminUsers() {
+      setAdminReportMode(false);
       setBusy(elements.adminUsersButton, true, 'Načítám...');
       showStatus('');
       try {
@@ -1301,6 +1309,7 @@
     }
 
     async function loadAdminParticipantStats() {
+      setAdminReportMode(false);
       setBusy(elements.adminParticipantStatsButton, true, 'Načítám...');
       showStatus('');
       try {
@@ -1329,6 +1338,7 @@
     }
 
     async function loadAdminLog(reset) {
+      setAdminReportMode(false);
       if (reset) {
         state.adminLogOffset = 0;
         elements.adminTableHead.replaceChildren();
@@ -1387,6 +1397,184 @@
         });
         elements.adminTableBody.appendChild(row);
       });
+    }
+
+    async function loadAdminUsageReport() {
+      setBusy(elements.adminUsageReportButton, true, 'Načítám...');
+      showStatus('');
+      try {
+        const data = await apiPostWithRetry({
+          action: 'adminUsageReport',
+          sessionToken: state.sessionToken
+        });
+        if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
+        renderAdminUsageReport(data.report || {});
+      } catch (error) {
+        handleAdminError(error);
+      } finally {
+        setBusy(elements.adminUsageReportButton, false, 'Využití tras');
+      }
+    }
+
+    function renderAdminUsageReport(report) {
+      const summary = report.summary || {};
+      elements.adminContentTitle.textContent = 'Využití tras';
+      elements.adminSummary.textContent = 'Denní přehled v čase Europe/Prague. Vygenerováno ' +
+        formatReportDateTime(report.generatedAt) + '.';
+      elements.adminReport.replaceChildren();
+
+      const trend = summary.sevenDayChangePercent;
+      const metricValues = [
+        ['Návštěvy bodů', Number(summary.totalVisits || 0).toLocaleString('cs-CZ')],
+        ['Účastníci celkem', Number(summary.uniqueParticipants || 0).toLocaleString('cs-CZ')],
+        ['Aktivní za 30 dní', Number(summary.activeParticipantsLast30 || 0).toLocaleString('cs-CZ')],
+        ['Dokončené trasy', Number(summary.completedRoutes || 0).toLocaleString('cs-CZ')],
+        ['Ušlá vzdálenost', formatDistance(summary.completedDistanceKm) + ' km'],
+        ['Podíl dokončených stavů', formatDistance(summary.completionRatePercent) + ' %'],
+        ['Návštěvy za 7 dní', Number(summary.visitsLast7 || 0).toLocaleString('cs-CZ')],
+        ['Změna proti minulému týdnu', trend === null || trend === undefined ? 'Bez srovnání' :
+          (Number(trend) > 0 ? '+' : '') + formatDistance(trend) + ' %']
+      ];
+      const metrics = document.createElement('div');
+      metrics.className = 'report-metrics';
+      metricValues.forEach(function(metric) {
+        const card = document.createElement('div');
+        card.className = 'report-metric';
+        const value = document.createElement('strong');
+        value.textContent = metric[1];
+        const label = document.createElement('span');
+        label.textContent = metric[0];
+        card.append(value, label);
+        metrics.appendChild(card);
+      });
+      elements.adminReport.appendChild(metrics);
+
+      appendReportHighlights(elements.adminReport, summary);
+      appendReportTable(elements.adminReport, 'Trasy podle využití',
+        ['Trasa', 'Návštěvy', 'Za 30 dní', 'Účastníci', 'Dokončeno', 'Rozpracováno', 'Vzdálenost'],
+        (report.routes || []).map(function(route) {
+          return [route.route, route.visits, route.visitsLast30, route.uniqueParticipants,
+            route.completedCount, route.openAttempts, formatDistance(route.completedDistanceKm) + ' km'];
+        }));
+      appendReportBars(elements.adminReport, 'Aktivita podle hodin', report.hours || [], 'label');
+      appendReportBars(elements.adminReport, 'Aktivita podle dnů v týdnu', report.weekdays || [], 'label');
+      appendReportTable(elements.adminReport, 'Nejaktivnější body',
+        ['Bod', 'Trasa', 'Návštěvy', 'Účastníci', 'Poslední návštěva'],
+        (report.points || []).map(function(point) {
+          return [point.point, point.route, point.visits, point.uniqueParticipants,
+            formatReportDateTime(point.lastVisitAt)];
+        }));
+      setAdminReportMode(true);
+      elements.adminContent.classList.remove('hidden');
+      elements.adminLoadMoreButton.classList.add('hidden');
+    }
+
+    function appendReportHighlights(container, summary) {
+      const section = document.createElement('section');
+      section.className = 'report-section';
+      const heading = document.createElement('h3');
+      heading.textContent = 'Nejvyšší aktivita';
+      const list = document.createElement('ul');
+      const highlights = [
+        summary.busiestDay && summary.busiestDay.date ? 'Nejrušnější datum: ' +
+          formatReportDate(summary.busiestDay.date) + ' (' + summary.busiestDay.visits + ' návštěv)' : '',
+        summary.busiestHour && summary.busiestHour.label ? 'Nejvytíženější čas: ' +
+          summary.busiestHour.label + ' (' + summary.busiestHour.visits + ' návštěv)' : '',
+        summary.busiestWeekday && summary.busiestWeekday.label ? 'Nejaktivnější den v týdnu: ' +
+          summary.busiestWeekday.label + ' (' + summary.busiestWeekday.visits + ' návštěv)' : '',
+        'Aktuálně rozpracované pokusy: ' + Number(summary.openAttempts || 0).toLocaleString('cs-CZ')
+      ].filter(Boolean);
+      highlights.forEach(function(text) {
+        const item = document.createElement('li');
+        item.textContent = text;
+        list.appendChild(item);
+      });
+      section.append(heading, list);
+      container.appendChild(section);
+    }
+
+    function appendReportTable(container, title, headers, rows) {
+      const section = document.createElement('section');
+      section.className = 'report-section';
+      const heading = document.createElement('h3');
+      heading.textContent = title;
+      const scroll = document.createElement('div');
+      scroll.className = 'table-scroll';
+      const table = document.createElement('table');
+      table.className = 'admin-table report-table';
+      const head = document.createElement('thead');
+      const body = document.createElement('tbody');
+      const headerRow = document.createElement('tr');
+      headers.forEach(function(header) {
+        const cell = document.createElement('th');
+        cell.scope = 'col';
+        cell.textContent = header;
+        headerRow.appendChild(cell);
+      });
+      head.appendChild(headerRow);
+      rows.forEach(function(values) {
+        const row = document.createElement('tr');
+        values.forEach(function(value) {
+          const cell = document.createElement('td');
+          cell.textContent = value === null || value === undefined ? '' : String(value);
+          row.appendChild(cell);
+        });
+        body.appendChild(row);
+      });
+      table.append(head, body);
+      scroll.appendChild(table);
+      section.append(heading, scroll);
+      container.appendChild(section);
+    }
+
+    function appendReportBars(container, title, entries, labelField) {
+      const section = document.createElement('section');
+      section.className = 'report-section';
+      const heading = document.createElement('h3');
+      heading.textContent = title;
+      const chart = document.createElement('div');
+      chart.className = 'report-bars';
+      const maximum = entries.reduce(function(max, entry) { return Math.max(max, Number(entry.visits) || 0); }, 0);
+      entries.forEach(function(entry) {
+        const row = document.createElement('div');
+        row.className = 'report-bar-row';
+        const label = document.createElement('span');
+        label.className = 'report-bar-label';
+        label.textContent = entry[labelField];
+        const track = document.createElement('span');
+        track.className = 'report-bar-track';
+        const fill = document.createElement('span');
+        fill.className = 'report-bar-fill';
+        fill.style.width = (maximum ? (Number(entry.visits) || 0) / maximum * 100 : 0) + '%';
+        track.appendChild(fill);
+        const value = document.createElement('strong');
+        value.textContent = Number(entry.visits || 0).toLocaleString('cs-CZ');
+        row.append(label, track, value);
+        chart.appendChild(row);
+      });
+      section.append(heading, chart);
+      container.appendChild(section);
+    }
+
+    function setAdminReportMode(enabled) {
+      elements.adminReport.classList.toggle('hidden', !enabled);
+      elements.adminTableScroll.classList.toggle('hidden', enabled);
+      if (!enabled) elements.adminReport.replaceChildren();
+    }
+
+    function formatReportDateTime(value) {
+      if (!value) return '—';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return new Intl.DateTimeFormat('cs-CZ', {
+        dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Prague'
+      }).format(date);
+    }
+
+    function formatReportDate(value) {
+      const date = new Date(String(value) + 'T12:00:00Z');
+      return Number.isNaN(date.getTime()) ? String(value) :
+        new Intl.DateTimeFormat('cs-CZ', { dateStyle: 'medium', timeZone: 'Europe/Prague' }).format(date);
     }
 
     function handleAdminError(error) {
