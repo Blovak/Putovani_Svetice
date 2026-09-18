@@ -5,10 +5,7 @@
   const SESSION_KEY = 'putovani:session';
   const SVETICE_CENTER = [49.9717989, 14.6651694];
   const status = document.getElementById('distanceStatus');
-  const metrics = document.getElementById('distanceMetrics');
   const explanation = document.getElementById('distanceExplanation');
-  const radiusValue = document.getElementById('radiusValue');
-  const diameterValue = document.getElementById('diameterValue');
   const fitCircleButton = document.getElementById('fitCircleButton');
   const centerButton = document.getElementById('centerButton');
   const backButton = document.getElementById('backButton');
@@ -110,12 +107,9 @@
       zIndexOffset: 500
     }).addTo(map).bindPopup('<strong>Světice – obecní úřad</strong><br>Střed kruhu celkové vzdálenosti');
 
-    radiusValue.textContent = formatDistance(totalDistanceKm);
-    diameterValue.textContent = formatDistance(totalDistanceKm * 2);
     status.textContent = 'Všichni účastníci zatím společně ušli ' + formatDistance(totalDistanceKm) + '.' +
       (calculatedAt ? ' Přepočteno: ' + calculatedAt + '.' : '');
     status.classList.remove('error');
-    metrics.classList.remove('hidden');
     explanation.classList.remove('hidden');
     fitCircleButton.classList.remove('hidden');
     centerButton.classList.remove('hidden');

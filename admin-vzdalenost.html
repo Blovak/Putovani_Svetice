@@ -7,35 +7,19 @@
   <meta name="robots" content="noindex">
   <title>Mapa celkové vzdálenosti – Světické kilometrobraní</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="admin-vzdalenost.css">
+  <link rel="stylesheet" href="admin-vzdalenost.css?v=32">
 </head>
 <body>
   <main id="distanceMap" aria-label="Interaktivní mapa celkové ušlé vzdálenosti"></main>
 
   <aside class="distance-panel" aria-labelledby="distanceTitle">
     <p class="eyebrow">Administrace</p>
-    <h1 id="distanceTitle">Kam až jsme společně došli</h1>
+    <h1 id="distanceTitle">Kam jsme až došli</h1>
     <p id="distanceStatus" class="distance-status" aria-live="polite">Načítám aktuální vzdálenost…</p>
 
-    <dl id="distanceMetrics" class="distance-metrics hidden">
-      <div>
-        <dt>Poloměr kruhu</dt>
-        <dd id="radiusValue">—</dd>
-      </div>
-      <div>
-        <dt>Průměr kruhu</dt>
-        <dd id="diameterValue">—</dd>
-      </div>
-      <div>
-        <dt>Střed</dt>
-        <dd>Světice, obecní úřad</dd>
-      </div>
-    </dl>
-
     <p id="distanceExplanation" class="distance-explanation hidden">
-      Okraj zeleného kruhu ukazuje vzdušnou vzdálenost odpovídající všem
-      dokončeným kilometrům účastníků. Souhrn se přepočítává každých pět minut.
-      Mapu můžete přibližovat a posouvat.
+      Zelený kruh ukazuje, kam až bychom ze Světic došli po společně ušlé
+      vzdálenosti. Aktualizuje se každých pět minut.
     </p>
 
     <div class="distance-actions">
@@ -47,6 +31,6 @@
 
   <noscript>Pro zobrazení mapy je potřeba povolit JavaScript.</noscript>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="admin-vzdalenost.js?v=31"></script>
+  <script src="admin-vzdalenost.js?v=32"></script>
 </body>
 </html>
