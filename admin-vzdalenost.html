@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f5d38">
+  <meta name="robots" content="noindex">
+  <title>Mapa celkové vzdálenosti – Světické kilometrobraní</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="admin-vzdalenost.css">
+</head>
+<body>
+  <main id="distanceMap" aria-label="Interaktivní mapa celkové ušlé vzdálenosti"></main>
+
+  <aside class="distance-panel" aria-labelledby="distanceTitle">
+    <p class="eyebrow">Administrace</p>
+    <h1 id="distanceTitle">Kam až jsme společně došli</h1>
+    <p id="distanceStatus" class="distance-status" aria-live="polite">Načítám aktuální vzdálenost…</p>
+
+    <dl id="distanceMetrics" class="distance-metrics hidden">
+      <div>
+        <dt>Poloměr kruhu</dt>
+        <dd id="radiusValue">—</dd>
+      </div>
+      <div>
+        <dt>Průměr kruhu</dt>
+        <dd id="diameterValue">—</dd>
+      </div>
+      <div>
+        <dt>Střed</dt>
+        <dd>Světice, obecní úřad</dd>
+      </div>
+    </dl>
+
+    <p id="distanceExplanation" class="distance-explanation hidden">
+      Okraj zeleného kruhu ukazuje vzdušnou vzdálenost odpovídající všem
+      dokončeným kilometrům účastníků. Mapu můžete přibližovat a posouvat.
+    </p>
+
+    <div class="distance-actions">
+      <button id="fitCircleButton" class="map-button hidden" type="button">Zobrazit celý kruh</button>
+      <button id="centerButton" class="map-button map-button--secondary hidden" type="button">Přiblížit Světice</button>
+      <button id="backButton" class="map-button map-button--back" type="button">Zpět do administrace</button>
+    </div>
+  </aside>
+
+  <noscript>Pro zobrazení mapy je potřeba povolit JavaScript.</noscript>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="admin-vzdalenost.js"></script>
+</body>
+</html>

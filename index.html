@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#eef5ef">
-  <meta name="app-version" content="admin-usage-report-25">
+  <meta name="app-version" content="admin-distance-circle-map-29">
   <title>Světické kilometrobraní</title>
   <style>
     :root {
@@ -568,6 +568,7 @@
         </div>
         <p id="adminTotalDistance" class="total-distance" aria-live="polite"></p>
         <div class="actions">
+          <button id="adminDistanceMapButton" class="secondary" type="button">Mapa celkové vzdálenosti</button>
           <button id="adminUsageReportButton" class="secondary" type="button">Využití tras</button>
           <button id="adminUsersButton" class="secondary" type="button">Seznam uživatelů</button>
           <button id="adminParticipantStatsButton" class="secondary" type="button">Statistiky účastníků</button>
@@ -717,6 +718,7 @@
         adminEmail: document.getElementById('adminEmail'),
         adminTotalDistance: document.getElementById('adminTotalDistance'),
         exitAdminButton: document.getElementById('exitAdminButton'),
+        adminDistanceMapButton: document.getElementById('adminDistanceMapButton'),
         adminUsersButton: document.getElementById('adminUsersButton'),
         adminUsageReportButton: document.getElementById('adminUsageReportButton'),
         adminParticipantStatsButton: document.getElementById('adminParticipantStatsButton'),
@@ -802,6 +804,9 @@
       elements.adminResultButton.addEventListener('click', enterAdminMode);
       elements.adminScanButton.addEventListener('click', enterAdminMode);
       elements.exitAdminButton.addEventListener('click', exitAdminMode);
+      elements.adminDistanceMapButton.addEventListener('click', function () {
+        window.location.href = 'admin-vzdalenost.html';
+      });
       elements.adminUsageReportButton.addEventListener('click', loadAdminUsageReport);
       elements.adminUsersButton.addEventListener('click', loadAdminUsers);
       elements.adminParticipantStatsButton.addEventListener('click', loadAdminParticipantStats);
