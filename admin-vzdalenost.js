@@ -79,6 +79,7 @@
   function initializeMap(totalDistanceKm, calculatedAt) {
     const radiusMeters = Math.max(0, totalDistanceKm * 1000);
     map = L.map('distanceMap', { preferCanvas: true, zoomControl: false });
+    map.setView(SVETICE_CENTER, 13);
     L.control.zoom({ position: 'topright' }).addTo(map);
     L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
