@@ -76,7 +76,7 @@
     });
   }
 
-  function initializeMap(totalDistanceKm) {
+  function initializeMap(totalDistanceKm, calculatedAt) {
     const radiusMeters = Math.max(0, totalDistanceKm * 1000);
     map = L.map('distanceMap', { preferCanvas: true, zoomControl: false });
     L.control.zoom({ position: 'topright' }).addTo(map);
@@ -111,7 +111,8 @@
 
     radiusValue.textContent = formatDistance(totalDistanceKm);
     diameterValue.textContent = formatDistance(totalDistanceKm * 2);
-    status.textContent = 'Všichni účastníci zatím společně ušli ' + formatDistance(totalDistanceKm) + '.';
+    status.textContent = 'Všichni účastníci zatím společně ušli ' + formatDistance(totalDistanceKm) + '.' +
+      (calculatedAt ? ' Přepočteno: ' + calculatedAt + '.' : '');
     status.classList.remove('error');
     metrics.classList.remove('hidden');
     explanation.classList.remove('hidden');
@@ -138,16 +139,15 @@
       return;
     }
     try {
-      const session = await apiPostWithRetry({ action: 'session', sessionToken: token });
-      if (session.status !== 'OK' || !session.isAdmin) {
-        showError('Tato mapa je dostupná pouze administrátorům.');
-        return;
-      }
-      const data = await apiPostWithRetry({ action: 'stats', sessionToken: token });
+      const data = await apiPostWithRetry({ action: 'adminTotalDistance', sessionToken: token });
       if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
-      initializeMap(Math.max(0, Number(data.totalDistanceKm) || 0));
-    } catch (_) {
-      showError('Aktuální vzdálenost se nepodařilo načíst. Zkontrolujte připojení a zkuste to znovu.');
+      initializeMap(Math.max(0, Number(data.totalDistanceKm) || 0), data.calculatedAt || '');
+    } catch (error) {
+      if (error.message === 'UNAUTHORIZED' || error.message === 'FORBIDDEN') {
+        showError('Tato mapa je dostupná pouze přihlášeným administrátorům.');
+      } else {
+        showError('Aktuální vzdálenost se nepodařilo načíst. Zkontrolujte připojení a zkuste to znovu.');
+      }
     }
   }
 

@@ -15,6 +15,7 @@ profile so the web app continues to execute as `putovani.svetice@gmail.com`:
 clasp --user putovani push
 ```
 
-The current production release is Apps Script version 28. It includes the
+The current production release is Apps Script version 30. It includes the
 dedicated, idempotent daily admin usage report scheduled after 01:00 in the
-`Europe/Prague` time zone.
+`Europe/Prague` time zone and a separately precomputed display distance that is
+refreshed every five minutes.

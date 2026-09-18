@@ -16,6 +16,7 @@ const CONFIG = Object.freeze({
   pointCacheSeconds: 6 * 60 * 60,
   sessionCacheSeconds: 5 * 60,
   userAccessCacheSeconds: 5 * 60,
+  aggregateCacheSeconds: 5 * 60,
   sheetSyncMinutes: 5,
   reportTimezone: 'Europe/Prague',
   dailyReportHour: 1
@@ -63,6 +64,7 @@ function doPost(e) {
       case 'session': return sessionInfo_(data.sessionToken);
       case 'visit': return recordVisit_(data.sessionToken, data.code, data.requestId);
       case 'stats': return statsResponse_(data.sessionToken);
+      case 'adminTotalDistance': return adminTotalDistanceResponse_(data.sessionToken);
       case 'adminUsers': return adminUsersResponse_(data.sessionToken);
       case 'adminParticipantStats': return adminParticipantStatsResponse_(data.sessionToken);
       case 'adminUsageReport': return adminUsageReportResponse_(data.sessionToken);
@@ -398,9 +400,9 @@ function statsResponse_(token) {
   if (!session) return json_({ status: 'ERROR', error: 'UNAUTHORIZED' });
   const result = firestoreQueryAndGet_('routeStats', {
     fieldFilter: { field: { fieldPath: 'userId' }, op: 'EQUAL', value: firestoreValue_(session.userId) }
-  }, {}, 'aggregates/stats');
+  }, {}, 'aggregates/displayStats');
   const summaries = result.documents;
-  const aggregate = result.document || {};
+  const aggregate = result.document || firestoreGet_('aggregates/stats') || {};
   let totalPersonalDistanceKm = 0;
   let activeRoute = '';
   let activeRouteLastPoint = '';
@@ -433,6 +435,57 @@ function statsResponse_(token) {
     activeRoute: activeRoute, activeRouteLastPoint: activeRouteLastPoint,
     totalDistanceKm: Number(aggregate.totalDistanceKm) || 0
   });
+}
+
+function adminTotalDistanceResponse_(token) {
+  const authorization = authorizeAdmin_(token);
+  if (authorization.error) return json_({ status: 'ERROR', error: authorization.error });
+  const aggregate = getDisplayAggregate_();
+  return json_({
+    status: 'OK',
+    totalDistanceKm: Number(aggregate.totalDistanceKm) || 0,
+    calculatedAt: formatDateTime_(aggregate.calculatedAt || aggregate.updatedAt)
+  });
+}
+
+function getDisplayAggregate_() {
+  const cacheKey = 'aggregate:display:v1';
+  let aggregate = cacheGetJson_(cacheKey);
+  if (!aggregate) {
+    aggregate = firestoreGet_('aggregates/displayStats') || firestoreGet_('aggregates/stats') || {};
+    cachePutJson_(cacheKey, aggregate, CONFIG.aggregateCacheSeconds);
+  }
+  return aggregate;
+}
+
+function calculateTotalDistanceKm_(summaries) {
+  const total = (summaries || []).reduce(function(sum, summary) {
+    return sum + (Number(summary.completedCount) || 0) * (Number(summary.distanceKm) || 0);
+  }, 0);
+  return Math.round(total * 10) / 10;
+}
+
+function refreshDisplayAggregate() {
+  const aggregate = refreshDisplayAggregate_();
+  return 'Zobrazovaná celková vzdálenost přepočítána: ' + aggregate.totalDistanceKm + ' km.';
+}
+
+function refreshDisplayAggregate_() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const now = new Date();
+    const aggregate = {
+      totalDistanceKm: calculateTotalDistanceKm_(firestoreList_('routeStats')),
+      calculatedAt: now,
+      updatedAt: now
+    };
+    firestoreSet_('aggregates/displayStats', aggregate);
+    cachePutJson_('aggregate:display:v1', aggregate, CONFIG.aggregateCacheSeconds);
+    return aggregate;
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function adminUsersResponse_(token) {
@@ -837,6 +890,17 @@ function installDailyAdminReportTrigger() {
     .inTimezone(CONFIG.reportTimezone)
     .create();
   return 'Denní administrátorský report je naplánován po ' + CONFIG.dailyReportHour + '. hodině (' + CONFIG.reportTimezone + ').';
+}
+
+function installDisplayAggregateTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function(trigger) {
+    if (trigger.getHandlerFunction() === 'refreshDisplayAggregate') ScriptApp.deleteTrigger(trigger);
+  });
+  ScriptApp.newTrigger('refreshDisplayAggregate')
+    .timeBased()
+    .everyMinutes(CONFIG.sheetSyncMinutes)
+    .create();
+  return 'Celková zobrazovaná vzdálenost se přepočítává každých ' + CONFIG.sheetSyncMinutes + ' minut.';
 }
 
 function setupAuth_() {

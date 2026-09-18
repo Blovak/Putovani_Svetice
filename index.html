@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#eef5ef">
-  <meta name="app-version" content="admin-distance-circle-map-29">
+  <meta name="app-version" content="precomputed-total-distance-30">
   <title>Světické kilometrobraní</title>
   <style>
     :root {
@@ -1267,11 +1267,15 @@
     async function loadAdminTotalDistance() {
       elements.adminTotalDistance.textContent = 'Načítám celkovou vzdálenost...';
       try {
-        const data = await apiPostWithRetry({ action: 'stats', sessionToken: state.sessionToken });
+        const data = await apiPostWithRetry({ action: 'adminTotalDistance', sessionToken: state.sessionToken });
         if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
         elements.adminTotalDistance.textContent = totalDistanceText(data.totalDistanceKm);
+        elements.adminTotalDistance.title = data.calculatedAt
+          ? 'Přepočteno: ' + data.calculatedAt
+          : '';
       } catch (error) {
         elements.adminTotalDistance.textContent = 'Celkovou vzdálenost se nepodařilo načíst.';
+        elements.adminTotalDistance.title = '';
         if (error.message === 'UNAUTHORIZED') handleAdminError(error);
       }
     }
