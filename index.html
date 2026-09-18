@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#eef5ef">
-  <meta name="app-version" content="compact-distance-map-32">
+  <meta name="app-version" content="participant-distance-map-33">
   <title>Světické kilometrobraní</title>
   <style>
     :root {
@@ -542,6 +542,9 @@
           <h2>Statistiky</h2>
           <p id="totalDistance" class="total-distance"></p>
           <p id="personalDistance" class="total-distance"></p>
+          <div class="actions">
+            <button id="statsDistanceMapButton" class="secondary" type="button">Kam jsme až došli</button>
+          </div>
           <h3>Dokončené trasy</h3>
           <p id="emptyStats" class="hidden">Zatím nemáte evidovanou žádnou dokončenou trasu.</p>
           <div class="table-scroll">
@@ -568,7 +571,6 @@
         </div>
         <p id="adminTotalDistance" class="total-distance" aria-live="polite"></p>
         <div class="actions">
-          <button id="adminDistanceMapButton" class="secondary" type="button">Mapa celkové vzdálenosti</button>
           <button id="adminUsageReportButton" class="secondary" type="button">Využití tras</button>
           <button id="adminUsersButton" class="secondary" type="button">Seznam uživatelů</button>
           <button id="adminParticipantStatsButton" class="secondary" type="button">Statistiky účastníků</button>
@@ -708,6 +710,7 @@
         statsSection: document.getElementById('statsSection'),
         totalDistance: document.getElementById('totalDistance'),
         personalDistance: document.getElementById('personalDistance'),
+        statsDistanceMapButton: document.getElementById('statsDistanceMapButton'),
         emptyStats: document.getElementById('emptyStats'),
         statsTable: document.getElementById('statsTable'),
         statsBody: document.getElementById('statsBody'),
@@ -718,7 +721,6 @@
         adminEmail: document.getElementById('adminEmail'),
         adminTotalDistance: document.getElementById('adminTotalDistance'),
         exitAdminButton: document.getElementById('exitAdminButton'),
-        adminDistanceMapButton: document.getElementById('adminDistanceMapButton'),
         adminUsersButton: document.getElementById('adminUsersButton'),
         adminUsageReportButton: document.getElementById('adminUsageReportButton'),
         adminParticipantStatsButton: document.getElementById('adminParticipantStatsButton'),
@@ -797,6 +799,9 @@
       elements.visitButton.addEventListener('click', recordVisit);
       elements.scanVisitButton.addEventListener('click', openScanner);
       elements.statsButton.addEventListener('click', loadStats);
+      elements.statsDistanceMapButton.addEventListener('click', function () {
+        window.location.href = 'admin-vzdalenost.html';
+      });
       elements.scanResultButton.addEventListener('click', openScanner);
       elements.logoutButton.addEventListener('click', logout);
       elements.scanLogoutButton.addEventListener('click', logout);
@@ -804,9 +809,6 @@
       elements.adminResultButton.addEventListener('click', enterAdminMode);
       elements.adminScanButton.addEventListener('click', enterAdminMode);
       elements.exitAdminButton.addEventListener('click', exitAdminMode);
-      elements.adminDistanceMapButton.addEventListener('click', function () {
-        window.location.href = 'admin-vzdalenost.html';
-      });
       elements.adminUsageReportButton.addEventListener('click', loadAdminUsageReport);
       elements.adminUsersButton.addEventListener('click', loadAdminUsers);
       elements.adminParticipantStatsButton.addEventListener('click', loadAdminParticipantStats);
@@ -1267,7 +1269,7 @@
     async function loadAdminTotalDistance() {
       elements.adminTotalDistance.textContent = 'Načítám celkovou vzdálenost...';
       try {
-        const data = await apiPostWithRetry({ action: 'adminTotalDistance', sessionToken: state.sessionToken });
+        const data = await apiPostWithRetry({ action: 'totalDistance', sessionToken: state.sessionToken });
         if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
         elements.adminTotalDistance.textContent = totalDistanceText(data.totalDistanceKm);
         elements.adminTotalDistance.title = data.calculatedAt

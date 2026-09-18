@@ -130,16 +130,16 @@
     }
     const token = localStorage.getItem(SESSION_KEY) || '';
     if (!token) {
-      showError('Pro zobrazení této mapy se nejprve přihlaste jako administrátor.');
+      showError('Pro zobrazení této mapy se nejprve přihlaste.');
       return;
     }
     try {
-      const data = await apiPostWithRetry({ action: 'adminTotalDistance', sessionToken: token });
+      const data = await apiPostWithRetry({ action: 'totalDistance', sessionToken: token });
       if (data.status !== 'OK') throw new Error(data.error || 'SERVER_ERROR');
       initializeMap(Math.max(0, Number(data.totalDistanceKm) || 0), data.calculatedAt || '');
     } catch (error) {
-      if (error.message === 'UNAUTHORIZED' || error.message === 'FORBIDDEN') {
-        showError('Tato mapa je dostupná pouze přihlášeným administrátorům.');
+      if (error.message === 'UNAUTHORIZED') {
+        showError('Pro zobrazení této mapy se nejprve přihlaste.');
       } else {
         showError('Aktuální vzdálenost se nepodařilo načíst. Zkontrolujte připojení a zkuste to znovu.');
       }

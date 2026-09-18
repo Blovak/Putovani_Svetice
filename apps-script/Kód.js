@@ -64,7 +64,8 @@ function doPost(e) {
       case 'session': return sessionInfo_(data.sessionToken);
       case 'visit': return recordVisit_(data.sessionToken, data.code, data.requestId);
       case 'stats': return statsResponse_(data.sessionToken);
-      case 'adminTotalDistance': return adminTotalDistanceResponse_(data.sessionToken);
+      case 'totalDistance': return totalDistanceResponse_(data.sessionToken);
+      case 'adminTotalDistance': return totalDistanceResponse_(data.sessionToken);
       case 'adminUsers': return adminUsersResponse_(data.sessionToken);
       case 'adminParticipantStats': return adminParticipantStatsResponse_(data.sessionToken);
       case 'adminUsageReport': return adminUsageReportResponse_(data.sessionToken);
@@ -437,9 +438,9 @@ function statsResponse_(token) {
   });
 }
 
-function adminTotalDistanceResponse_(token) {
-  const authorization = authorizeAdmin_(token);
-  if (authorization.error) return json_({ status: 'ERROR', error: authorization.error });
+function totalDistanceResponse_(token) {
+  const session = requireSession_(token);
+  if (!session) return json_({ status: 'ERROR', error: 'UNAUTHORIZED' });
   const aggregate = getDisplayAggregate_();
   return json_({
     status: 'OK',
